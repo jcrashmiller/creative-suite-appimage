@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Linux Bundle Installer - Application Selection Page with Icons
+Linux Bundle Installer - Application Selection Page with Desktop File Detection
 Copyright (c) 2025 Loading Screen Solutions
 
 Licensed under the MIT License. See LICENSE file for details.
@@ -15,16 +15,31 @@ from PIL import Image, ImageTk
 import os
 from pathlib import Path
 from gui.base_page import BasePage
+from core.bundle_state_detector import BundleStateDetector
 
 class SelectionPage(BasePage):
-    """Application selection page with icons, checkboxes and categories"""
+    """Application selection page with desktop file detection and icons"""
     
     def __init__(self, parent, app_parser, config):
         self.app_parser = app_parser
         self.config = config
+        
+        # Add app_parser reference to config for bundle prefix detection
+        self.config.app_parser = app_parser
+        
+        # Initialize state detector
+        self.state_detector = BundleStateDetector(config)
+        
+        # Get current bundle state
+        self.bundle_info = self.state_detector.get_bundle_info()
+        self.currently_installed = self.bundle_info["installed_app_ids"]
+        
+        print(f"DEBUG: Bundle info: {self.bundle_info}")  # Debug output
+        
         self.app_checkboxes = {}  # Store checkbox variables
         self.app_widgets = {}     # Store widget references
         self.icons_cache = {}     # Cache loaded icons
+        
         super().__init__(parent, config)
     
     def setup_ui(self):
@@ -36,18 +51,23 @@ class SelectionPage(BasePage):
         # Main container with scrolling
         self.setup_scrollable_frame()
         
-        # Dynamic title based on JSON
-        title = ttk.Label(
-            self.content_frame, 
-            text=f"Select {suite_name} Applications", 
-            style='Title.TLabel'
-        )
+        # Dynamic title based on bundle state
+        if self.bundle_info["is_installed"]:
+            title_text = f"Modify {suite_name}"
+            desc_text = f"Add or remove applications from your {suite_name.lower()} installation. Currently installed applications are pre-selected."
+        else:
+            title_text = f"Select {suite_name} Applications"
+            desc_text = f"Choose which {suite_name.lower()} applications to install. Recommended applications are pre-selected."
+        
+        title = ttk.Label(self.content_frame, text=title_text, style='Title.TLabel')
         title.pack(pady=(0, 20))
         
-        # Dynamic description
-        desc_text = f"Choose which {suite_name.lower()} applications to install. Recommended applications are pre-selected."
         desc_label = ttk.Label(self.content_frame, text=desc_text, style='Heading.TLabel')
         desc_label.pack(pady=(0, 20))
+        
+        # Show current state if bundle is installed
+        if self.bundle_info["is_installed"]:
+            self.show_current_state_info()
         
         # Selection controls
         self.create_selection_controls()
@@ -57,6 +77,23 @@ class SelectionPage(BasePage):
         
         # Summary area
         self.create_summary_area()
+    
+    def show_current_state_info(self):
+        """Show information about current bundle installation"""
+        info_frame = ttk.LabelFrame(self.content_frame, text="Current Installation", padding=10)
+        info_frame.pack(fill="x", pady=(0, 15), padx=10)
+        
+        total = self.bundle_info["total_installed"]
+        app_names = self.bundle_info["installed_app_names"]
+        
+        info_text = f"Currently installed: {total} applications\n"
+        if app_names:
+            info_text += "• " + "\n• ".join(app_names[:5])
+            if len(app_names) > 5:
+                info_text += f"\n• ... and {len(app_names) - 5} more"
+        
+        info_label = ttk.Label(info_frame, text=info_text, justify='left')
+        info_label.pack(anchor="w")
     
     def setup_scrollable_frame(self):
         """Create a scrollable frame for the content"""
@@ -140,10 +177,6 @@ class SelectionPage(BasePage):
         """Create a default icon if no icon file is found"""
         # Create a simple colored square with initials
         pil_image = Image.new('RGBA', (32, 32), (100, 150, 200, 255))
-        
-        # TODO: Could add text/initials here using PIL.ImageDraw
-        # For now, just return a simple colored square
-        
         return ImageTk.PhotoImage(pil_image)
     
     def create_selection_controls(self):
@@ -151,27 +184,91 @@ class SelectionPage(BasePage):
         controls_frame = ttk.Frame(self.content_frame)
         controls_frame.pack(fill="x", pady=(0, 15))
         
+        # Left side - selection buttons
+        left_controls = ttk.Frame(controls_frame)
+        left_controls.pack(side="left")
+        
         ttk.Button(
-            controls_frame, 
+            left_controls, 
             text="Select All", 
             command=self.select_all
         ).pack(side="left", padx=(0, 10))
         
         ttk.Button(
-            controls_frame, 
+            left_controls, 
             text="Select None", 
             command=self.select_none
         ).pack(side="left", padx=(0, 10))
         
         ttk.Button(
-            controls_frame, 
+            left_controls, 
             text="Select Recommended", 
             command=self.select_recommended
         ).pack(side="left")
         
+        # Right side - bundle management and selection count
+        right_controls = ttk.Frame(controls_frame)
+        right_controls.pack(side="right")
+        
+        # Add "Remove Bundle" button if bundle is installed - FIXED CONDITION
+        print(f"DEBUG: Checking bundle installation - is_installed: {self.bundle_info['is_installed']}")
+        print(f"DEBUG: Total installed: {self.bundle_info['total_installed']}")
+        
+        if self.bundle_info["is_installed"] and self.bundle_info["total_installed"] > 0:
+            print("DEBUG: Creating Remove Bundle button")
+            self.remove_bundle_button = ttk.Button(
+                right_controls,
+                text="🗑 Remove Bundle",
+                command=self.confirm_remove_bundle
+            )
+            self.remove_bundle_button.pack(side="left", padx=(0, 15))
+        else:
+            print("DEBUG: Not creating Remove Bundle button - bundle not installed")
+        
         # Selection count label
-        self.selection_count_label = ttk.Label(controls_frame, text="")
-        self.selection_count_label.pack(side="right")
+        self.selection_count_label = ttk.Label(right_controls, text="")
+        self.selection_count_label.pack(side="left")
+    
+    def confirm_remove_bundle(self):
+        """Confirm and initiate complete bundle removal"""
+        suite_info = self.app_parser.get_suite_info()
+        suite_name = suite_info.get('name', 'Application Bundle')
+        
+        # Get list of currently installed apps for confirmation
+        app_names = self.bundle_info["installed_app_names"]
+        
+        # Show detailed confirmation
+        confirm_msg = f"""Remove {suite_name} Completely?
+
+This will remove:
+✓ All {suite_name} menu entries and icons
+✓ {suite_name} category from application menu
+
+✗ Applications remain installed:"""
+        
+        for app_name in app_names[:6]:
+            confirm_msg += f"\n  • {app_name}"
+        
+        if len(app_names) > 6:
+            confirm_msg += f"\n  • ... and {len(app_names) - 6} more"
+        
+        confirm_msg += f"""
+
+The applications will be available in their original menu locations.
+
+Continue with {suite_name} removal?"""
+        
+        if messagebox.askyesno(f"Remove {suite_name}", confirm_msg):
+            # Store removal result and trigger navigation
+            self._removal_result = {
+                'mode': 'remove_bundle',
+                'suite_name': suite_name,
+                'installed_apps': self.bundle_info["installed_app_ids"],
+                'app_names': self.bundle_info["installed_app_names"]
+            }
+            
+            # We'll return this in on_next() - the main window will handle the navigation
+            print("DEBUG: Bundle removal confirmed, will be processed in on_next()")
     
     def create_app_selection_area(self):
         """Create the main app selection area organized by categories"""
@@ -205,9 +302,15 @@ class SelectionPage(BasePage):
         # Checkbox variable
         var = tk.BooleanVar()
         
-        # Set default selection
-        if app.get('default_selected', False):
+        # Determine checkbox state based on current installation
+        is_currently_installed = app_id in self.currently_installed
+        
+        if is_currently_installed:
+            # If currently installed by bundle, always check
             var.set(True)
+        else:
+            # If not installed, use default selection
+            var.set(app.get('default_selected', False))
         
         # Store the variable
         self.app_checkboxes[app_id] = var
@@ -267,18 +370,25 @@ class SelectionPage(BasePage):
             )
             equiv_label.pack(anchor="w")
         
-        # Required indicator
+        # Status indicators
+        if is_currently_installed:
+            status_label = ttk.Label(
+                info_frame, 
+                text="[CURRENTLY IN BUNDLE]", 
+                foreground='green', 
+                font=('Arial', 8, 'bold')
+            )
+            status_label.pack(anchor="w")
+        
+        # Required indicator (if any apps are still marked required)
         if app.get('required', False):
             req_label = ttk.Label(
                 info_frame, 
-                text="[REQUIRED]", 
-                foreground='red', 
+                text="[RECOMMENDED]", 
+                foreground='blue', 
                 font=('Arial', 8, 'bold')
             )
             req_label.pack(anchor="w")
-            # Required apps can't be unchecked
-            checkbox.configure(state='disabled')
-            var.set(True)
         
         # Store widget references
         self.app_widgets[app_id] = {
@@ -286,18 +396,24 @@ class SelectionPage(BasePage):
             'checkbox': checkbox,
             'variable': var,
             'app_data': app,
-            'icon_label': icon_label
+            'icon_label': icon_label,
+            'currently_installed': is_currently_installed
         }
     
     def create_summary_area(self):
-        """Create summary area showing what will be installed"""
+        """Create summary area showing what will be installed/changed"""
         # Get suite name for dynamic text
         suite_info = self.app_parser.get_suite_info()
         suite_name = suite_info.get('name', 'Application Bundle')
         
+        if self.bundle_info["is_installed"]:
+            summary_title = f"{suite_name} Changes Summary"
+        else:
+            summary_title = f"{suite_name} Installation Summary"
+        
         summary_frame = ttk.LabelFrame(
             self.content_frame, 
-            text=f"{suite_name} Installation Summary", 
+            text=summary_title, 
             padding=10
         )
         summary_frame.pack(fill="x", pady=15, padx=10)
@@ -311,27 +427,24 @@ class SelectionPage(BasePage):
     def select_all(self):
         """Select all applications"""
         for app_id, var in self.app_checkboxes.items():
-            widget_info = self.app_widgets[app_id]
-            if widget_info['checkbox']['state'] != 'disabled':
-                var.set(True)
+            var.set(True)
         self.on_selection_changed()
     
     def select_none(self):
-        """Deselect all non-required applications"""
+        """Deselect all applications"""
         for app_id, var in self.app_checkboxes.items():
-            widget_info = self.app_widgets[app_id]
-            app_data = widget_info['app_data']
-            if not app_data.get('required', False):
-                var.set(False)
+            var.set(False)
         self.on_selection_changed()
     
     def select_recommended(self):
-        """Select only recommended applications"""
+        """Select recommended applications and currently installed"""
         for app_id, var in self.app_checkboxes.items():
             widget_info = self.app_widgets[app_id]
             app_data = widget_info['app_data']
+            is_currently_installed = widget_info['currently_installed']
             
-            if app_data.get('required', False) or app_data.get('default_selected', False):
+            # Select if recommended OR currently installed
+            if app_data.get('default_selected', False) or is_currently_installed:
                 var.set(True)
             else:
                 var.set(False)
@@ -350,22 +463,50 @@ class SelectionPage(BasePage):
         self.selection_count_label.config(text=f"Selected: {selected_count}/{total_count}")
     
     def update_summary(self):
-        """Update the installation summary"""
+        """Update the installation/changes summary"""
         selected_apps = self.get_selected_apps()
+        selected_ids = [app.get('id') for app in selected_apps]
         
-        if not selected_apps:
-            summary_text = "No applications selected."
-        else:
-            summary_lines = ["Applications to be installed:"]
-            for app in selected_apps:
-                app_name = app.get('name', 'Unknown')
-                adobe_equiv = app.get('adobe_equivalent', '')
-                if adobe_equiv:
-                    summary_lines.append(f"• {app_name} (replaces {adobe_equiv})")
-                else:
-                    summary_lines.append(f"• {app_name}")
+        # Calculate changes if bundle is installed
+        if self.bundle_info["is_installed"]:
+            changes = self.state_detector.get_installation_changes(selected_ids)
             
-            summary_text = "\n".join(summary_lines)
+            if not changes["has_changes"]:
+                summary_text = "No changes - selection matches current installation."
+            else:
+                summary_lines = []
+                
+                if changes["to_add"]:
+                    summary_lines.append(f"Install {len(changes['to_add'])} new applications:")
+                    for app_id in changes["to_add"]:
+                        app_name = self.app_parser.get_app_field(app_id, 'name') or app_id
+                        summary_lines.append(f"  + {app_name}")
+                
+                if changes["to_remove"]:
+                    summary_lines.append(f"Remove {len(changes['to_remove'])} from bundle:")
+                    for app_id in changes["to_remove"]:
+                        app_name = self.app_parser.get_app_field(app_id, 'name') or app_id
+                        summary_lines.append(f"  - {app_name}")
+                
+                if changes["no_change"]:
+                    summary_lines.append(f"Keep {len(changes['no_change'])} current applications")
+                
+                summary_text = "\n".join(summary_lines)
+        else:
+            # Fresh installation
+            if not selected_apps:
+                summary_text = "No applications selected."
+            else:
+                summary_lines = ["Applications to be installed:"]
+                for app in selected_apps:
+                    app_name = app.get('name', 'Unknown')
+                    adobe_equiv = app.get('adobe_equivalent', '')
+                    if adobe_equiv:
+                        summary_lines.append(f"• {app_name} (replaces {adobe_equiv})")
+                    else:
+                        summary_lines.append(f"• {app_name}")
+                
+                summary_text = "\n".join(summary_lines)
         
         # Update text widget
         self.summary_text.configure(state='normal')
@@ -391,52 +532,72 @@ class SelectionPage(BasePage):
         suite_name = suite_info.get('name', 'Application Bundle')
         
         if not selected_apps:
-            messagebox.showwarning(
-                "No Selection", 
-                f"Please select at least one {suite_name.lower()} application to install."
-            )
-            return False
-        
-        # Check that all required apps are selected
-        all_apps = self.app_parser.get_all_apps()
-        required_apps = [app for app in all_apps if app.get('required', False)]
-        selected_ids = [app.get('id') for app in selected_apps]
-        
-        missing_required = []
-        for req_app in required_apps:
-            if req_app.get('id') not in selected_ids:
-                missing_required.append(req_app.get('name', req_app.get('id')))
-        
-        if missing_required:
-            messagebox.showerror(
-                "Missing Required Applications",
-                f"The following required applications must be selected:\n\n" +
-                "\n".join(f"• {name}" for name in missing_required)
-            )
-            return False
+            # Check if this is removing everything from an existing bundle
+            if self.bundle_info["is_installed"]:
+                # Instead of asking here, suggest using the Remove Bundle button
+                messagebox.showinfo(
+                    "Remove All Applications",
+                    f"To completely remove {suite_name}, use the '🗑 Remove Bundle' button.\n\n"
+                    "This will remove all menu entries while keeping the applications installed."
+                )
+                return False
+            else:
+                messagebox.showwarning(
+                    "No Selection", 
+                    f"Please select at least one {suite_name.lower()} application to install."
+                )
+                return False
         
         return True
     
     def on_next(self):
-        """Called when Install Selected button is clicked"""
+        """Called when Install/Apply button is clicked"""
+        # Check if we're in bundle removal mode (button was clicked)
+        if hasattr(self, '_removal_result'):
+            result = self._removal_result
+            delattr(self, '_removal_result')  # Clean up
+            print("DEBUG: Returning removal result from on_next()")
+            return result
+        
         if not self.validate_selection():
             return None
         
         selected_apps = self.get_selected_apps()
-        suite_info = self.app_parser.get_suite_info()
-        suite_name = suite_info.get('name', 'Application Bundle')
+        selected_ids = [app.get('id') for app in selected_apps]
         
-        # Confirm installation with dynamic text
-        app_names = [app.get('name', 'Unknown') for app in selected_apps]
-        confirm_msg = f"Ready to install {len(selected_apps)} {suite_name.lower()} applications:\n\n"
-        confirm_msg += "\n".join(f"• {name}" for name in app_names[:10])  # Show first 10
-        
-        if len(app_names) > 10:
-            confirm_msg += f"\n... and {len(app_names) - 10} more"
-        
-        confirm_msg += "\n\nProceed with installation?"
-        
-        if messagebox.askyesno("Confirm Installation", confirm_msg):
-            return selected_apps
+        # Calculate what needs to be done
+        if self.bundle_info["is_installed"]:
+            changes = self.state_detector.get_installation_changes(selected_ids)
+            
+            if not changes["has_changes"] and selected_apps:
+                messagebox.showinfo("No Changes", "Selection matches current installation - no changes needed.")
+                return None
+            
+            # Return modification data
+            return {
+                'mode': 'modify',
+                'changes': changes,
+                'selected_apps': selected_apps
+            }
         else:
-            return None
+            # Fresh installation
+            suite_info = self.app_parser.get_suite_info()
+            suite_name = suite_info.get('name', 'Application Bundle')
+            
+            # Confirm installation
+            app_names = [app.get('name', 'Unknown') for app in selected_apps]
+            confirm_msg = f"Ready to install {len(selected_apps)} {suite_name.lower()} applications:\n\n"
+            confirm_msg += "\n".join(f"• {name}" for name in app_names[:10])
+            
+            if len(app_names) > 10:
+                confirm_msg += f"\n... and {len(app_names) - 10} more"
+            
+            confirm_msg += "\n\nProceed with installation?"
+            
+            if messagebox.askyesno("Confirm Installation", confirm_msg):
+                return {
+                    'mode': 'install',
+                    'selected_apps': selected_apps
+                }
+            else:
+                return None

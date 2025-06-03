@@ -53,6 +53,7 @@ class MainWindow:
         self.root = root
         self.config = config
         self.current_page = None
+        self.current_page_type = None  # Track page type for navigation
         self.pages = {}
         
         # Try to load and validate app definitions
@@ -160,6 +161,7 @@ class MainWindow:
             self.app_parser.get_all_apps(),
             self.config
         )
+        self.current_page_type = "welcome"
         
         # Update navigation
         self.back_button.config(state="disabled")
@@ -175,6 +177,7 @@ class MainWindow:
             self.app_parser,
             self.config
         )
+        self.current_page_type = "selection"
         
         # Update navigation
         self.back_button.config(state="normal")
@@ -192,6 +195,7 @@ class MainWindow:
             self.config,
             on_complete=self.show_manager_page
         )
+        self.current_page_type = "installation"
         
         # Update navigation
         self.back_button.config(state="disabled")
@@ -207,6 +211,7 @@ class MainWindow:
             self.app_parser,
             self.config
         )
+        self.current_page_type = "manager"
         
         # Update navigation
         self.back_button.config(state="disabled")
@@ -214,39 +219,55 @@ class MainWindow:
         self.status_label.config(text="Manage Applications")
     
     def go_back(self):
-        """Handle back button click"""
+        """Handle back button click - fixed navigation logic"""
         try:
+            # Let the current page handle back if it has the method
             if hasattr(self.current_page, 'on_back'):
-                self.current_page.on_back()
-            else:
-                # Default back behavior
-                if isinstance(self.current_page, SelectionPage):
-                    self.show_welcome_page()
-                elif isinstance(self.current_page, ManagerPage):
-                    self.show_selection_page()
+                result = self.current_page.on_back()
+                # If page handled it and returned False, don't do default navigation
+                if result is False:
+                    return
+            
+            # Default back navigation based on current page type
+            if self.current_page_type == "selection":
+                self.show_welcome_page()
+            elif self.current_page_type == "manager":
+                # After installation completes, back should go to selection for re-modification
+                self.show_selection_page()
+            # Welcome and installation pages don't have back navigation
+            
         except Exception as e:
             self._handle_error("Navigation Error", e)
     
     def go_next(self):
         """Handle next button click"""
         try:
+            # Get result from current page if it has on_next method
+            result = None
             if hasattr(self.current_page, 'on_next'):
                 result = self.current_page.on_next()
+            
+            # Handle page transitions based on current page type and result
+            if self.current_page_type == "welcome":
+                self.show_selection_page()
                 
-                # Handle page transitions based on current page
-                if isinstance(self.current_page, WelcomePage):
-                    self.show_selection_page()
-                elif isinstance(self.current_page, SelectionPage):
-                    if result:  # result should be selected apps
+            elif self.current_page_type == "selection":
+                if result:  # result should be selected apps or removal data
+                    # Check if this is a bundle removal operation
+                    if isinstance(result, dict) and result.get('mode') == 'remove_bundle':
+                        # Start removal process
                         self.show_installation_page(result)
-                elif isinstance(self.current_page, ManagerPage):
-                    self._on_closing()
-            else:
-                # Default next behavior
-                if isinstance(self.current_page, WelcomePage):
-                    self.show_selection_page()
-                elif isinstance(self.current_page, ManagerPage):
-                    self._on_closing()
+                    else:
+                        # Normal installation/modification
+                        self.show_installation_page(result)
+                        
+            elif self.current_page_type == "manager":
+                self._on_closing()
+                
+            elif self.current_page_type == "installation":
+                # Installation page handles its own completion via on_complete callback
+                pass
+                
         except Exception as e:
             self._handle_error("Navigation Error", e)
     
