@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Scribus (Creative Suite)
+GenericName=Desktop Publisher
+Comment=Professional page layout and publishing
+Icon=creative-suite-scribus
+Exec=scribus %F
+Terminal=false
+StartupNotify=true
+MimeType=application/x-scribus;application/vnd.scribus;
+Categories=Office;Publishing;X-Creative-Suite;
+Keywords=indesign;publishing;layout;desktop;creative;suite;

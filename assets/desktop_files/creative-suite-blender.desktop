@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Blender (Creative Suite)
+GenericName=3D Creation Suite
+Comment=3D modeling, animation, rendering, and more
+Icon=creative-suite-blender
+Exec=blender %f
+Terminal=false
+StartupNotify=true
+MimeType=application/x-blender;
+Categories=Graphics;3DGraphics;X-Creative-Suite;
+Keywords=3d;modeling;animation;aftereffects;creative;suite;

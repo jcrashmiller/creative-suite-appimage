@@ -1,0 +1,14 @@
+# creative-suite-synfig.desktop
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Synfig Studio (Creative Suite)
+GenericName=2D Vector Animation
+Comment=Create amazing 2D vector animations
+Exec=synfigstudio
+Icon=creative-suite-synfig
+StartupNotify=true
+NoDisplay=false
+Categories=Graphics;2DGraphics;VectorGraphics;Animation;X-Creative-Suite;
+Keywords=animation;vector;2d;synfig;studio;cartoon;motion;graphics;
+MimeType=application/x-sif;application/x-sifz;

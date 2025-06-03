@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Creative Suite
+Comment=Open source alternatives to Adobe Creative Suite
+Icon=creative-suite-main
+Exec=nautilus ~/.local/share/applications/
+Terminal=false
+Categories=AudioVideo;Graphics;Office;
+NoDisplay=false
+StartupNotify=false

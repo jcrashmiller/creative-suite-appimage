@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Inkscape (Creative Suite)
+GenericName=Vector Graphics Editor
+Comment=Create and edit scalable vector graphics
+Icon=creative-suite-inkscape
+Exec=inkscape %F
+Terminal=false
+StartupNotify=true
+MimeType=image/svg+xml;image/svg+xml-compressed;application/vnd.corel-draw;application/pdf;application/postscript;image/x-eps;application/illustrator;
+Categories=Graphics;VectorGraphics;X-Creative-Suite;
+Keywords=illustrator;vector;graphics;design;creative;suite;

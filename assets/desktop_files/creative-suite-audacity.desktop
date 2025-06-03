@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Audacity (Creative Suite)
+GenericName=Audio Editor
+Comment=Record and edit audio files
+Icon=creative-suite-audacity
+Exec=audacity %F
+Terminal=false
+StartupNotify=true
+MimeType=audio/aac;audio/ac3;audio/mp4;audio/x-ms-wma;video/mpeg;audio/mpeg;audio/x-wav;audio/x-aiff;audio/basic;audio/x-flac;audio/flac;audio/ogg;audio/x-vorbis+ogg;audio/x-speex;audio/opus;
+Categories=AudioVideo;Audio;X-Creative-Suite;
+Keywords=audition;audio;recording;sound;creative;suite;

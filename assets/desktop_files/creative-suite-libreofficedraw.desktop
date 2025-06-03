@@ -1,0 +1,14 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=LibreOffice Draw (Creative Suite)
+GenericName=Vector Graphics and Diagrams
+Comment=Create and edit drawings, diagrams and illustrations
+Exec=libreoffice --draw
+Icon=creative-suite-libreofficedraw
+StartupNotify=true
+NoDisplay=false
+Categories=Graphics;VectorGraphics;Office;X-Creative-Suite;
+Keywords=draw;vector;diagram;illustration;office;presentation;flowchart;
+MimeType=application/vnd.oasis.opendocument.graphics;application/vnd.oasis.opendocument.graphics-template;application/vnd.sun.xml.draw;application/vnd.sun.xml.draw.template;application/vnd.stardivision.draw;application/vnd.oasis.opendocument.graphics-flat-xml;
+

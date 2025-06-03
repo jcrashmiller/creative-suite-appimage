@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Krita (Creative Suite)
+GenericName=Digital Painting
+Comment=Digital painting and illustration
+Icon=creative-suite-krita
+Exec=krita %U
+Terminal=false
+StartupNotify=true
+MimeType=application/x-krita;image/openraster;application/x-xcf;image/jpeg;image/png;image/tiff;
+Categories=Graphics;2DGraphics;X-Creative-Suite;
+Keywords=painting;drawing;digital;art;creative;suite;
