@@ -426,9 +426,6 @@ class InstallationPage(BasePage):
         # Enable close button
         self.complete_button.configure(state='normal')
         self.complete_button.configure(text="Close")
-
-        # Auto-close after 2 seconds
-        self.parent.after(2000, lambda: self.on_installation_complete())
         
         # Update current app status
         self.update_app_progress("Removal Complete", "Ready to close", False)
@@ -438,19 +435,6 @@ class InstallationPage(BasePage):
         
         # Force GUI update
         self.parent.update_idletasks()
-
-    def show_selection_page_directly(self):
-        """Navigate directly back to selection page for modifications"""
-        try:
-            # Find main window and go to selection page
-            current = self.parent
-            while current and not hasattr(current, 'show_selection_page'):
-                current = getattr(current, 'master', None) or getattr(current, 'parent', None)
-            
-            if current and hasattr(current, 'show_selection_page'):
-                current.show_selection_page()
-        except Exception as e:
-            print(f"Could not navigate to selection page: {e}")
     
     def handle_installation_process(self):
         """Handle fresh installation process"""
@@ -634,37 +618,12 @@ class InstallationPage(BasePage):
         self.complete_button.configure(state='normal')
         self.complete_button.configure(text="Manage Bundle →")
         self.update_app_progress("Modification Complete", "Ready to continue", False)
-        # Auto-navigate to selection page and show banner after 2 seconds for more modifications
-        self.parent.after(2000, lambda: self.return_to_selection_with_message())
-
+        
         # Update main window status properly
         self._update_main_window_status("Complete")
         
         # Force GUI update
         self.parent.update_idletasks()
-
-    def return_to_selection_with_message(self):
-        """Return to selection page with success message"""
-        try:
-            # Build success message
-            suite_info = self.app_parser.get_suite_info()
-            suite_name = suite_info.get('name', 'Application Bundle')
-            message = f"{suite_name} modified successfully"
-            
-            # Find main window and return to selection with message
-            current = self.parent
-            while current and not hasattr(current, 'show_selection_page'):
-                current = getattr(current, 'master', None) or getattr(current, 'parent', None)
-            
-            if current and hasattr(current, 'show_selection_page'):
-                current.show_selection_page(success_message=message)
-            else:
-                print("Could not find main window to return to selection")
-                
-        except Exception as e:
-            print(f"Could not return to selection page: {e}")
-            # Fallback to normal completion
-            self.on_installation_complete()
     
     def start_installation(self):
         """Start the installation process in a background thread"""
@@ -704,14 +663,6 @@ class InstallationPage(BasePage):
         else:
             self.complete_button.configure(text="Back to Selection →")
         
-        if successful and not failed:
-            # Perfect success - go to manager after 2 seconds
-            self.parent.after(2000, lambda: self.on_installation_complete())
-        elif not successful:
-            # Complete failure - go back to selection after 3 seconds
-            self.parent.after(3000, lambda: self.on_installation_complete())
-        # Partial success - stay on page so user can see what failed
-
         # Update current app status
         self.update_app_progress("Installation Complete", "Ready to continue", False)
         

@@ -201,7 +201,7 @@ class PackageManager:
             if self.detected_manager == 'apt':
                 # Update package list first (quietly)
                 if use_sudo:
-                    update_cmd = ['sudo', 'apt', 'update', '-qq']
+                    update_cmd = ['pkexec', 'apt', 'update', '-qq']
                 else:
                     update_cmd = ['apt', 'update', '-qq']
                 subprocess.run(update_cmd, capture_output=True, timeout=60)
@@ -209,34 +209,34 @@ class PackageManager:
                 # Install packages
                 cmd = ['apt', 'install', '-y'] + packages_to_install
                 if use_sudo:
-                    cmd = ['sudo'] + cmd
+                    cmd = ['pkexec'] + cmd
             
             elif self.detected_manager == 'dnf':
                 cmd = ['dnf', 'install', '-y'] + packages_to_install
                 if use_sudo:
-                    cmd = ['sudo'] + cmd
+                    cmd = ['pkexec'] + cmd
             
             elif self.detected_manager == 'yum':
                 cmd = ['yum', 'install', '-y'] + packages_to_install
                 if use_sudo:
-                    cmd = ['sudo'] + cmd
+                    cmd = ['pkexec'] + cmd
             
             elif self.detected_manager == 'pacman':
                 # Update package database first
                 if use_sudo:
-                    update_cmd = ['sudo', 'pacman', '-Sy']
+                    update_cmd = ['pkexec', 'pacman', '-Sy']
                 else:
                     update_cmd = ['pacman', '-Sy']
                 subprocess.run(update_cmd, capture_output=True, timeout=60)
                 
                 cmd = ['pacman', '-S', '--noconfirm'] + packages_to_install
                 if use_sudo:
-                    cmd = ['sudo'] + cmd
+                    cmd = ['pkexec'] + cmd
             
             elif self.detected_manager == 'zypper':
                 cmd = ['zypper', 'install', '-y'] + packages_to_install
                 if use_sudo:
-                    cmd = ['sudo'] + cmd
+                    cmd = ['pkexec'] + cmd
             
             else:
                 return False, f"Unsupported package manager: {self.detected_manager}"
@@ -300,7 +300,7 @@ class PackageManager:
             return True, f"Snap {snap_name} already installed"
         
         try:
-            cmd = ['sudo', 'snap', 'install', snap_name]
+            cmd = ['pkexec', 'snap', 'install', snap_name]
             print(f"Running: {' '.join(cmd)}")
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
             
@@ -362,26 +362,19 @@ class PackageManager:
         return False, f"All installation methods failed for {app_name}", 'none'
     
     def check_sudo_access(self) -> bool:
-        """Check if we have sudo access without prompting"""
+        """Check if pkexec is available"""
         try:
-            result = subprocess.run(['sudo', '-n', 'true'], 
-                                  capture_output=True, timeout=5)
+            # Check if pkexec is available
+            result = subprocess.run(['which', 'pkexec'], capture_output=True, timeout=5)
             return result.returncode == 0
         except:
             return False
-    
+
     def request_sudo_access(self) -> bool:
-        """Request sudo access (will prompt for password in terminal)"""
-        try:
-            print("\nAdministrative access required for package installation.")
-            print("Please enter your password when prompted:")
-            result = subprocess.run(['sudo', '-v'], timeout=60)
-            return result.returncode == 0
-        except subprocess.TimeoutExpired:
-            print("Timeout waiting for password")
-            return False
-        except:
-            return False
+        """Request sudo access (pkexec will handle GUI prompt)"""
+        # With pkexec, we don't need to pre-authenticate
+        # The GUI prompt appears when needed
+        return self.check_sudo_access()
     
     def get_manager_info(self) -> dict:
         """Get information about detected package manager and alternatives"""

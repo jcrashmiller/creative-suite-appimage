@@ -69,7 +69,7 @@ class MainWindow:
         suite_version = suite_info.get('version', '1.0')
         
         # Dynamic window title
-        window_title = f"{suite_name} Installer v{suite_version}"
+        window_title = f"{suite_name} Installer v{suite_version} - Loading Screen Solutions"
         
         self.root.title(window_title)
         self.root.minsize(700, 500)
@@ -166,7 +166,7 @@ class MainWindow:
         self.next_button.config(text="Get Started →", state="normal")
         self.status_label.config(text="Welcome")
     
-    def show_selection_page(self):
+    def show_selection_page(self, success_message=None):
         """Show the application selection page"""
         self._clear_content_frame()
         
@@ -177,6 +177,10 @@ class MainWindow:
         )
         self.current_page_type = "selection"
         
+        # Show success banner if provided
+        if success_message:
+            self.show_success_banner(success_message)
+        
         # Update navigation
         self.back_button.config(state="normal")
         # Dynamic button text based on bundle state
@@ -185,6 +189,39 @@ class MainWindow:
         else:
             self.next_button.config(text="Install Selected →", state="normal")
         self.status_label.config(text="Select Applications")
+    
+    def show_success_banner(self, message):
+        """Show a temporary success banner at the top of the window"""
+        # Create banner frame
+        banner = ttk.Frame(self.main_frame, style='Success.TFrame')
+        banner.grid(row=0, column=0, sticky="ew", padx=10, pady=(10, 5))
+        
+        # Configure success style if not already done
+        try:
+            style = ttk.Style()
+            style.configure('Success.TFrame', background='#d4edda', relief='solid', borderwidth=1)
+            style.configure('Success.TLabel', background='#d4edda', foreground='#155724', font=('Arial', 10, 'bold'))
+        except:
+            pass
+        
+        # Success message
+        success_label = ttk.Label(banner, text=f"✓ {message}", style='Success.TLabel')
+        success_label.pack(pady=8)
+        
+        # Move content frame down
+        self.content_frame.grid(row=1, column=0, sticky="nsew")
+        
+        # Auto-remove banner after 3 seconds
+        self.root.after(3000, lambda: self._remove_banner(banner))
+
+    def _remove_banner(self, banner):
+        """Remove the success banner"""
+        try:
+            banner.destroy()
+            # Move content frame back to row 0
+            self.content_frame.grid(row=0, column=0, sticky="nsew")
+        except:
+            pass    
     
     def show_installation_page(self, selected_apps):
         """Show the installation progress page"""

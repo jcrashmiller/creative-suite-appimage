@@ -45,9 +45,19 @@ class ManagerPage(BasePage):
         title = ttk.Label(self.parent, text="Manage Applications", style='Title.TLabel')
         title.pack(pady=20)
         
+        # Add company branding
+        branding = ttk.Label(
+            self.parent,
+            text="Loading Screen Solutions - Empowering you to use your tech, your way",
+            font=('Arial', 10, 'italic'),
+            foreground='gray'
+        )
+        branding.pack(pady=(0, 20))
+        
+        # Future management features go here
         placeholder = ttk.Label(
             self.parent, 
-            text="Application management will go here...\n\n(This is a placeholder)",
+            text="Application management features coming soon...",
             justify='center'
         )
         placeholder.pack(expand=True)
