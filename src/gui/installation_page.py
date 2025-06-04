@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Linux Bundle Installer - Installation Progress Page
+Linux Bundle Installer - Installation Progress Page (FIXED with Callbacks)
 Copyright (c) 2025 Loading Screen Solutions
 
 Licensed under the MIT License. See LICENSE file for details.
@@ -24,10 +24,11 @@ from core.desktop_integration import DesktopIntegrator
 class InstallationPage(BasePage):
     """Real installation page with progress tracking"""
     
-    def __init__(self, parent, selection_result, app_parser, config, on_complete=None):
+    def __init__(self, parent, selection_result, app_parser, config, on_complete=None, status_callback=None):
         self.selection_result = selection_result  # Can be apps list, modify dict, or removal dict
         self.app_parser = app_parser
         self.on_complete = on_complete
+        self.status_callback = status_callback  # NEW: Callback for status updates
         
         # Determine operation mode
         if isinstance(selection_result, dict):
@@ -270,6 +271,8 @@ class InstallationPage(BasePage):
                 # Install the application
                 success, message, method = self.package_manager.install_app(app, self.app_parser)
                 
+                print(f"DEBUG: Installation result for {app_name}: success={success}, method={method}, message={message}")
+                
                 if success:
                     self.log_message(f"✓ {app_name} installed successfully via {method}", "success")
                     successful_installs.append(app_name)
@@ -396,6 +399,8 @@ class InstallationPage(BasePage):
                 self.log_message(f"✓ {self.suite_name} removed successfully", "success")
                 self.update_app_progress("Bundle Removal", "Complete", False)
                 self.show_bundle_removal_complete()
+                # Update navigation status in main window
+                self._update_main_window_status("Bundle Removal Complete")
             else:
                 self.log_message(f"✗ Bundle removal failed", "error")
                 self.update_app_progress("Bundle Removal", "Failed", False)
@@ -407,6 +412,9 @@ class InstallationPage(BasePage):
             self.installation_errors.append(error_msg)
             self.update_app_progress("Bundle Removal", "Error", False)
             self.show_installation_failed(error_msg)
+            
+            # Update navigation status in main window  
+            self._update_main_window_status("Failed")
     
     def show_bundle_removal_complete(self):
         """Show bundle removal completion status"""
@@ -420,7 +428,13 @@ class InstallationPage(BasePage):
         self.complete_button.configure(text="Close")
         
         # Update current app status
-        self.update_app_progress("Removal Complete", "", False)
+        self.update_app_progress("Removal Complete", "Ready to close", False)
+        
+        # Update main window status properly
+        self._update_main_window_status("Complete")
+        
+        # Force GUI update
+        self.parent.update_idletasks()
     
     def handle_installation_process(self):
         """Handle fresh installation process"""
@@ -445,6 +459,9 @@ class InstallationPage(BasePage):
         
         # Show completion
         self.show_installation_complete(successful_installs, failed_installs, desktop_success)
+        
+        # Update navigation status in main window
+        self._update_main_window_status("Complete")
     
     def handle_modification_process(self):
         """Handle bundle modification process"""
@@ -561,6 +578,9 @@ class InstallationPage(BasePage):
         
         # Show completion
         self.show_modification_complete(apps_to_add, successful_adds, failed_adds, apps_to_remove)
+        
+        # Update navigation status in main window
+        self._update_main_window_status("Complete")
     
     def show_modification_complete(self, requested_adds, successful_adds, failed_adds, removed_apps):
         """Show modification completion status"""
@@ -596,7 +616,14 @@ class InstallationPage(BasePage):
         
         # Enable continue button
         self.complete_button.configure(state='normal')
-        self.update_app_progress("Modification Complete", "", False)
+        self.complete_button.configure(text="Manage Bundle →")
+        self.update_app_progress("Modification Complete", "Ready to continue", False)
+        
+        # Update main window status properly
+        self._update_main_window_status("Complete")
+        
+        # Force GUI update
+        self.parent.update_idletasks()
     
     def start_installation(self):
         """Start the installation process in a background thread"""
@@ -627,12 +654,23 @@ class InstallationPage(BasePage):
             self.overall_status.configure(text="❌ Installation failed")
             self.log_message("Installation failed - no applications were installed.", "error")
         
-        # Enable continue button
+        # Enable continue button immediately
         self.complete_button.configure(state='normal')
-        self.complete_button.configure(text="Manage Bundle →")
+        if self.mode == 'remove_bundle':
+            self.complete_button.configure(text="Close")
+        elif successful:
+            self.complete_button.configure(text="Manage Bundle →")
+        else:
+            self.complete_button.configure(text="Back to Selection →")
         
         # Update current app status
-        self.update_app_progress("Installation Complete", "", False)
+        self.update_app_progress("Installation Complete", "Ready to continue", False)
+        
+        # Update main window status properly
+        self._update_main_window_status("Complete")
+        
+        # Force GUI update
+        self.parent.update_idletasks()
     
     def show_installation_failed(self, error_message):
         """Show installation failure"""
@@ -640,8 +678,26 @@ class InstallationPage(BasePage):
         self.log_message(f"Installation failed: {error_message}", "error")
         self.update_app_progress("Installation Failed", error_message, False)
         
-        # Enable continue button (will go to manager to show what's available)
+        # Enable continue button (will go back to selection for retry)
         self.complete_button.configure(state='normal')
+        self.complete_button.configure(text="Back to Selection →")
+        
+        # Update main window status properly
+        self._update_main_window_status("Failed")
+        
+        # Force GUI update
+        self.parent.update_idletasks()
+    
+    def _update_main_window_status(self, status_text):
+        """Update the main window navigation status using callback"""
+        try:
+            if self.status_callback:
+                self.status_callback(status_text)
+                print(f"DEBUG: Successfully updated main window status via callback: {status_text}")
+            else:
+                print("DEBUG: No status callback available")
+        except Exception as e:
+            print(f"Warning: Could not update main window status via callback: {e}")
     
     def on_installation_complete(self):
         """Handle completion button click"""
@@ -660,9 +716,18 @@ class InstallationPage(BasePage):
                 import sys
                 sys.exit(0)
         else:
-            # Normal completion - go to manager
+            # For successful installations, go to manager page
+            # For failures, go back to selection page
             if self.on_complete:
                 self.on_complete()
+            else:
+                # Fallback - find main window and go back to selection
+                current = self.parent
+                while current and not hasattr(current, 'show_selection_page'):
+                    current = getattr(current, 'master', None) or getattr(current, 'parent', None)
+                
+                if current and hasattr(current, 'show_selection_page'):
+                    current.show_selection_page()
     
     def on_closing(self):
         """Handle window closing during installation"""

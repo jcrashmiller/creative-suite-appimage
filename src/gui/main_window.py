@@ -1,31 +1,9 @@
 #!/usr/bin/env python3
 """
-Linux Bundle Installer - Application Selection GUI
+Linux Bundle Installer - Main Window (FIXED with Callbacks)
 Copyright (c) 2025 Loading Screen Solutions
-https://github.com/LoadingScreenSolutions/linux-bundle-installer
 
-This file is part of Linux Bundle Installer.
-
-Linux Bundle Installer is free software: you can redistribute it and/or modify
-it under the terms of the MIT License.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Licensed under the MIT License. See LICENSE file for details.
 
 Author: James T. Miller
 Created: 2025-06-01
@@ -77,6 +55,9 @@ class MainWindow:
         self._setup_window()
         self._create_widgets()
         self._apply_styling()
+        
+        # Handle AppImage integration if needed
+        self._handle_appimage_integration()
         
         # Start with welcome page
         self.show_welcome_page()
@@ -150,6 +131,23 @@ class MainWindow:
         for widget in self.content_frame.winfo_children():
             widget.destroy()
     
+    def update_status_callback(self, status_text):
+        """Callback function for child pages to update main window status"""
+        try:
+            self.status_label.config(text=status_text)
+            print(f"DEBUG: Main window status updated to: {status_text}")
+            
+            # Enable next button when installation/operation is complete
+            if status_text in ["Complete", "Failed", "Bundle Removal Complete"]:
+                self.next_button.config(state='normal')
+                print(f"DEBUG: Next button enabled")
+            
+            # Force GUI update
+            self.root.update_idletasks()
+            
+        except Exception as e:
+            print(f"ERROR: Failed to update status: {e}")
+    
     def show_welcome_page(self):
         """Show the welcome/introduction page"""
         self._clear_content_frame()
@@ -181,23 +179,29 @@ class MainWindow:
         
         # Update navigation
         self.back_button.config(state="normal")
-        self.next_button.config(text="Install Selected →", state="normal")
+        # Dynamic button text based on bundle state
+        if hasattr(self.current_page, 'bundle_info') and self.current_page.bundle_info["is_installed"]:
+            self.next_button.config(text="Apply Changes →", state="normal")
+        else:
+            self.next_button.config(text="Install Selected →", state="normal")
         self.status_label.config(text="Select Applications")
     
     def show_installation_page(self, selected_apps):
         """Show the installation progress page"""
         self._clear_content_frame()
         
+        # FIXED: Pass the status callback to InstallationPage
         self.current_page = InstallationPage(
             self.content_frame,
             selected_apps,
             self.app_parser,
             self.config,
-            on_complete=self.show_manager_page
+            on_complete=self.show_manager_page,
+            status_callback=self.update_status_callback  # NEW: Add callback
         )
         self.current_page_type = "installation"
         
-        # Update navigation
+        # Update navigation - initially disabled during installation
         self.back_button.config(state="disabled")
         self.next_button.config(state="disabled")
         self.status_label.config(text="Installing...")
@@ -270,6 +274,29 @@ class MainWindow:
                 
         except Exception as e:
             self._handle_error("Navigation Error", e)
+    
+    def _handle_appimage_integration(self):
+        """Handle AppImage integration setup"""
+        import os
+        
+        # Only for AppImage
+        if not os.environ.get('APPIMAGE'):
+            print("DEBUG: Not running as AppImage - skipping integration dialog")
+            return
+        
+        try:
+            from gui.appimage_integration import check_appimage_integration
+            suite_info = self.app_parser.get_suite_info()
+            suite_name = suite_info.get('name', 'Linux Creative Suite')
+            
+            result = check_appimage_integration(suite_name)
+            
+            # Store the result for desktop integration
+            self.appimage_integration_result = result
+            
+        except Exception as e:
+            print(f"Warning: AppImage integration check failed: {e}")
+            self.appimage_integration_result = None
     
     def _handle_error(self, title, error):
         """Handle and display errors"""

@@ -59,9 +59,18 @@ class DesktopIntegrator:
         target_desktop_dir = self.config.user_applications_dir
         target_directory_dir = self.config.user_desktop_directories_dir
         
+        print(f"DEBUG: Looking for desktop files in: {source_desktop_dir}")
+        print(f"DEBUG: Target desktop directory: {target_desktop_dir}")
+        print(f"DEBUG: Apps to install desktop files for: {[app.get('id') for app in selected_apps]}")
+        
         if not source_desktop_dir.exists():
-            print(f"Warning: Source desktop files directory not found: {source_desktop_dir}")
+            print(f"ERROR: Source desktop files directory not found: {source_desktop_dir}")
             return False
+        
+        # List what's actually in the source directory
+        if source_desktop_dir.exists():
+            available_files = list(source_desktop_dir.glob("*.desktop"))
+            print(f"DEBUG: Available desktop files: {[f.name for f in available_files]}")
         
         # Ensure target directories exist
         target_desktop_dir.mkdir(parents=True, exist_ok=True)
@@ -74,6 +83,9 @@ class DesktopIntegrator:
         # Install the Creative Suite category directory file
         self.create_category_directory_file(target_directory_dir, suite_name)
         
+        # Only create manager desktop entry if appropriate
+        self.create_manager_desktop_entry_if_needed()
+        
         # Install desktop files for selected apps
         desktop_files_installed = 0
         for app in selected_apps:
@@ -85,16 +97,19 @@ class DesktopIntegrator:
             desktop_file_name = f"creative-suite-{app_id}.desktop"
             source_desktop_file = source_desktop_dir / desktop_file_name
             
+            print(f"DEBUG: Looking for desktop file: {source_desktop_file}")
+            
             if source_desktop_file.exists():
                 target_desktop_file = target_desktop_dir / desktop_file_name
                 try:
                     shutil.copy2(source_desktop_file, target_desktop_file)
                     desktop_files_installed += 1
-                    print(f"Installed desktop file for {app.get('name', app_id)}")
+                    print(f"✓ Installed desktop file for {app.get('name', app_id)}")
                 except Exception as e:
                     print(f"Warning: Could not install desktop file for {app_id}: {e}")
             else:
-                print(f"Warning: Desktop file not found: {desktop_file_name}")
+                print(f"WARNING: Desktop file not found: {desktop_file_name}")
+                print(f"         Checked: {source_desktop_file}")
         
         # Hide original system desktop files to prevent duplicates
         self.hide_system_desktop_files(selected_apps, target_desktop_dir)
@@ -165,10 +180,110 @@ Hidden=true
         print("Manager script creation skipped - handled by Python application")
         return True
     
-    def create_manager_desktop_entry(self):
-        """Create desktop entry for the Creative Suite manager - DISABLED: Not needed for Python version"""
-        print("Manager desktop entry creation skipped - handled by Python application")
-        return True
+    def create_manager_desktop_entry_if_needed(self):
+        """Create manager desktop entry only if appropriate"""
+        import os
+        
+        # For development, always create
+        if not os.environ.get('APPIMAGE'):
+            print("DEBUG: Running from source - creating manager desktop entry")
+            return self.create_main_manager_desktop_entry()
+        
+        # For AppImage, check integration status
+        # Check if AppImage is in a permanent location
+        appimage_path = os.environ['APPIMAGE']
+        permanent_locations = [
+            str(Path.home() / "Applications"),
+            "/opt/",
+            str(Path.home() / "bin"),
+            str(Path.home() / ".local" / "bin")
+        ]
+        
+        is_permanent = any(appimage_path.startswith(loc) for loc in permanent_locations)
+        
+        if is_permanent:
+            print("AppImage in permanent location - creating manager menu entry")
+            return self.create_main_manager_desktop_entry()
+        else:
+            print("AppImage in temporary location - skipping manager menu entry")
+            print(f"To create menu entry, move AppImage to: {Path.home() / 'Applications'}")
+            return False
+    
+    def create_main_manager_desktop_entry(self):
+        """Create desktop entry for managing the Creative Suite bundle"""
+        target_dir = self.config.user_applications_dir
+        manager_desktop_file = target_dir / "creative-suite-manager.desktop"
+        
+        # Get suite info
+        suite_info = self.config.app_parser.get_suite_info() if hasattr(self.config, 'app_parser') else {}
+        suite_name = suite_info.get('name', 'Application Bundle')
+        
+        # Determine the correct exec path
+        import os
+        import sys
+        
+        if os.environ.get('APPIMAGE'):
+            # Running as AppImage - use the APPIMAGE environment variable
+            current_appimage_path = os.environ['APPIMAGE']
+            
+            # Check if desktop entry exists and needs updating
+            if manager_desktop_file.exists():
+                try:
+                    with open(manager_desktop_file, 'r') as f:
+                        existing_content = f.read()
+                    
+                    # Check if the path in the existing entry matches current location
+                    for line in existing_content.split('\n'):
+                        if line.startswith('Exec='):
+                            existing_path = line[5:]  # Remove 'Exec='
+                            if existing_path != current_appimage_path:
+                                print(f"AppImage moved from {existing_path} to {current_appimage_path}")
+                                print("Updating desktop entry with new location...")
+                            break
+                except Exception as e:
+                    print(f"Could not read existing desktop entry: {e}")
+            
+            exec_line = current_appimage_path
+            print(f"Creating desktop entry for AppImage: {exec_line}")
+        elif getattr(sys, 'frozen', False):
+            # Running as other type of executable (PyInstaller, etc.)
+            exec_line = sys.executable
+            print(f"Creating desktop entry for executable: {exec_line}")
+        else:
+            # Running from source (development)
+            if hasattr(self.config, 'app_dir'):
+                main_script = self.config.app_dir / "src" / "main.py"
+                if main_script.exists():
+                    exec_line = f"python3 {main_script}"
+                else:
+                    # Fallback to relative path
+                    exec_line = f"python3 -m src.main"
+            else:
+                # Last resort fallback
+                exec_line = f"python3 {__file__}"
+            print(f"Creating desktop entry for development: {exec_line}")
+        
+        desktop_content = f"""[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Manage {suite_name}
+Comment=Add, remove, or modify {suite_name.lower()} applications
+Icon=creative-suite-main
+Exec={exec_line}
+Terminal=false
+Categories=System;Settings;X-Creative-Suite;
+Keywords=creative;suite;manager;modify;install;remove;
+StartupNotify=true
+"""
+        
+        try:
+            with open(manager_desktop_file, 'w', encoding='utf-8') as f:
+                f.write(desktop_content)
+            print(f"Created/Updated 'Manage {suite_name}' desktop entry")
+            return True
+        except Exception as e:
+            print(f"Warning: Could not create manager desktop entry: {e}")
+            return False
     
     def remove_apps_from_bundle(self, app_ids: List[str]) -> int:
         """

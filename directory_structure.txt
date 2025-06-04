@@ -330,9 +330,9 @@
     │       ├── __init__.cpython-312.pyc
     │       └── package_manager.cpython-312.pyc
     ├── gui
+    │   ├── appimage_integration.py
     │   ├── base_page.py
     │   ├── __init__.py
-    │   ├── installation_page (copy).py
     │   ├── installation_page.py
     │   ├── main_window.py
     │   ├── manager_page.py
@@ -345,8 +345,6 @@
     │   │   ├── selection_page.cpython-312.pyc
     │   │   ├── styles.cpython-312.pyc
     │   │   └── welcome_page.cpython-312.pyc
-    │   ├── selection_page (another copy).py
-    │   ├── selection_page (copy).py
     │   ├── selection_page.py
     │   ├── styles.py
     │   └── welcome_page.py
@@ -359,4 +357,4 @@
         │   └── json_parser.cpython-312.pyc
         └── system_utils.py
 
-25 directories, 335 files
+25 directories, 333 files
