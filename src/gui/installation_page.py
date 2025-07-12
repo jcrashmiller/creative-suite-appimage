@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Linux Bundle Installer - Installation Progress Page (FIXED with Callbacks)
+Linux Bundle Installer - Installation Progress Page (FIXED Navigation)
 Copyright (c) 2025 Loading Screen Solutions
 
 Licensed under the MIT License. See LICENSE file for details.
@@ -29,6 +29,24 @@ class InstallationPage(BasePage):
         self.app_parser = app_parser
         self.on_complete = on_complete
         self.status_callback = status_callback  # NEW: Callback for status updates
+        
+        # Store reference to main window for navigation - FIXED
+        self.main_window = None
+        current = parent
+        search_depth = 0
+        while current and search_depth < 5:
+            print(f"DEBUG: Navigation search level {search_depth}: {type(current)}")
+            if hasattr(current, 'show_selection_page'):
+                self.main_window = current
+                print(f"DEBUG: Found main window reference: {type(current)}")
+                break
+            # Try to get the MainWindow instance specifically
+            if hasattr(current, 'master') and hasattr(getattr(current, 'master'), 'show_selection_page'):
+                self.main_window = getattr(current, 'master')
+                print(f"DEBUG: Found main window via master: {type(self.main_window)}")
+                break
+            current = getattr(current, 'master', None) or getattr(current, 'parent', None)
+            search_depth += 1
         
         # Determine operation mode
         if isinstance(selection_result, dict):
@@ -438,19 +456,6 @@ class InstallationPage(BasePage):
         
         # Force GUI update
         self.parent.update_idletasks()
-
-    def show_selection_page_directly(self):
-        """Navigate directly back to selection page for modifications"""
-        try:
-            # Find main window and go to selection page
-            current = self.parent
-            while current and not hasattr(current, 'show_selection_page'):
-                current = getattr(current, 'master', None) or getattr(current, 'parent', None)
-            
-            if current and hasattr(current, 'show_selection_page'):
-                current.show_selection_page()
-        except Exception as e:
-            print(f"Could not navigate to selection page: {e}")
     
     def handle_installation_process(self):
         """Handle fresh installation process"""
@@ -632,39 +637,53 @@ class InstallationPage(BasePage):
         
         # Enable continue button
         self.complete_button.configure(state='normal')
-        self.complete_button.configure(text="Manage Bundle →")
+        self.complete_button.configure(text="Continue Modifying →")
         self.update_app_progress("Modification Complete", "Ready to continue", False)
-        # Auto-navigate to selection page and show banner after 2 seconds for more modifications
-        self.parent.after(2000, lambda: self.return_to_selection_with_message())
-
+        
+        # FIXED: Use immediate callback instead of timer for modification completion
+        # Auto-navigate to selection page immediately for more modifications
+        self.log_message("Returning to selection page for further modifications...", "info")
+        
         # Update main window status properly
         self._update_main_window_status("Complete")
         
         # Force GUI update
         self.parent.update_idletasks()
+        
+        # Schedule immediate return to selection page
+        print("DEBUG: Modification complete - enabling continue button")
 
     def return_to_selection_with_message(self):
-        """Return to selection page with success message"""
-        try:
-            # Build success message
-            suite_info = self.app_parser.get_suite_info()
-            suite_name = suite_info.get('name', 'Application Bundle')
-            message = f"{suite_name} modified successfully"
-            
-            # Find main window and return to selection with message
-            current = self.parent
-            while current and not hasattr(current, 'show_selection_page'):
-                current = getattr(current, 'master', None) or getattr(current, 'parent', None)
-            
-            if current and hasattr(current, 'show_selection_page'):
-                current.show_selection_page(success_message=message)
-            else:
-                print("Could not find main window to return to selection")
+            """Return to selection page with success message - FIXED to prevent loops"""
+            try:
+                # Build success message
+                suite_info = self.app_parser.get_suite_info()
+                suite_name = suite_info.get('name', 'Application Bundle')
+                message = f"{suite_name} modified successfully"
                 
-        except Exception as e:
-            print(f"Could not return to selection page: {e}")
-            # Fallback to normal completion
-            self.on_installation_complete()
+                print(f"DEBUG: Attempting navigation with main_window: {self.main_window}")
+                
+                # Use stored main window reference
+                if self.main_window and hasattr(self.main_window, 'show_selection_page'):
+                    print("DEBUG: Using stored main window reference")
+                    self.main_window.show_selection_page(success_message=message)
+                    return
+                
+                print("ERROR: No valid main window reference - using fallback completion")
+                # Fallback to normal completion instead of endless search
+                self.on_installation_complete()
+                    
+            except Exception as e:
+                print(f"ERROR: Navigation failed: {e}")
+                # Stop the loop - use completion instead
+                self.on_installation_complete()
+                    
+            except Exception as e:
+                print(f"ERROR: Could not return to selection page: {e}")
+                import traceback
+                traceback.print_exc()
+                # Fallback to normal completion
+                self.on_installation_complete()
     
     def start_installation(self):
         """Start the installation process in a background thread"""
@@ -765,18 +784,50 @@ class InstallationPage(BasePage):
                 import sys
                 sys.exit(0)
         else:
-            # For successful installations, go to manager page
-            # For failures, go back to selection page
-            if self.on_complete:
-                self.on_complete()
+            # For successful installations or modifications, use appropriate navigation
+            if self.mode == 'modify':
+                # For modifications, return to selection page for further changes
+                print("DEBUG: Modification complete, returning to selection page")
+                self.return_to_selection_with_message()
             else:
-                # Fallback - find main window and go back to selection
-                current = self.parent
-                while current and not hasattr(current, 'show_selection_page'):
-                    current = getattr(current, 'master', None) or getattr(current, 'parent', None)
-                
-                if current and hasattr(current, 'show_selection_page'):
-                    current.show_selection_page()
+                # For fresh installations, go to manager page
+                print("DEBUG: Installation complete, going to completion callback")
+                if self.on_complete:
+                    self.on_complete()
+                else:
+                    # Fallback - find main window and go to manager or selection
+                    if self.main_window and hasattr(self.main_window, 'show_manager_page'):
+                        self.main_window.show_manager_page()
+                    elif self.main_window and hasattr(self.main_window, 'show_selection_page'):
+                        self.main_window.show_selection_page()
+
+    def on_next(self):
+        """Called when next/continue button is clicked"""
+        if not self.is_installing:
+            # Installation/modification is complete, navigate based on mode
+            if self.mode == 'remove_bundle':
+                # Bundle removal complete - close application
+                return None  # This will trigger close
+            else:
+                # Installation/modification complete - return to selection page
+                print("DEBUG: Installation page on_next - returning to selection")
+                if self.main_window and hasattr(self.main_window, 'show_selection_page'):
+                    suite_info = self.app_parser.get_suite_info()
+                    suite_name = suite_info.get('name', 'Application Bundle')
+                    message = f"{suite_name} {'modified' if self.mode == 'modify' else 'installed'} successfully"
+                    self.main_window.show_selection_page(success_message=message)
+                return None
+        return None
+    
+    def on_back(self):
+        """Called when back button is clicked"""
+        if not self.is_installing:
+            # Installation/modification is complete, go back to selection
+            print("DEBUG: Installation page on_back - returning to selection")
+            if self.main_window and hasattr(self.main_window, 'show_selection_page'):
+                self.main_window.show_selection_page()
+            return False  # Indicate we handled the navigation
+        return True  # Allow default back behavior during installation
     
     def on_closing(self):
         """Handle window closing during installation"""

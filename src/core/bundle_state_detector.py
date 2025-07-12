@@ -1,23 +1,28 @@
 #!/usr/bin/env python3
 """
-Linux Bundle Installer - Bundle State Detection via Desktop Files
+Linux Bundle Installer - Enhanced Bundle State Detection with Availability
 Copyright (c) 2025 Loading Screen Solutions
 
 Licensed under the MIT License. See LICENSE file for details.
 
 Author: James T. Miller
 Created: 2025-06-01
+Enhanced: 2025-06-05
 """
 
 from pathlib import Path
 from typing import List, Dict, Optional
 
+# Import our new availability detector
+from core.app_availability_detector import AppAvailabilityDetector, AppAvailability
+
 class BundleStateDetector:
     """
     Detect bundle installation state by checking for desktop files
+    Enhanced with application availability detection
     
     Philosophy: The filesystem IS the state. If our .desktop files exist,
-    the bundle is installed. No separate state tracking needed.
+    the bundle is installed. Additionally, verify that target apps are actually available.
     """
     
     def __init__(self, config):
@@ -25,6 +30,9 @@ class BundleStateDetector:
         self.desktop_dir = config.user_applications_dir
         self.icons_dir = config.user_icons_dir
         self.bundle_prefix = self._get_bundle_prefix()
+        
+        # Initialize availability detector
+        self.availability_detector = AppAvailabilityDetector()
         
         print(f"DEBUG: BundleStateDetector initialized with prefix: {self.bundle_prefix}")
         print(f"DEBUG: Looking in desktop dir: {self.desktop_dir}")
@@ -96,8 +104,64 @@ class BundleStateDetector:
         category_file = self.config.user_desktop_directories_dir / "X-Creative-Suite.directory"
         return category_file.exists()
     
+    def get_bundle_info_with_availability(self, app_parser=None) -> Dict:
+        """
+        Get complete bundle installation information with availability status
+        
+        This is the enhanced version that checks actual app availability
+        """
+        installed_apps = self.get_installed_bundle_apps()
+        
+        # Get app names for the installed apps
+        app_names = []
+        availability_info = {}
+        
+        if app_parser:
+            # Get all apps from JSON to check availability
+            all_apps = app_parser.get_all_apps()
+            
+            # Detect availability for all apps
+            availability_results = self.availability_detector.detect_multiple_apps(all_apps, app_parser)
+            
+            # Process installed bundle apps
+            for app_id in installed_apps:
+                app_name = app_parser.get_app_field(app_id, 'name')
+                if app_name:
+                    app_names.append(app_name)
+                else:
+                    app_names.append(app_id.title())  # Fallback to capitalized ID
+                
+                # Store availability info
+                availability_info[app_id] = availability_results.get(app_id)
+        
+        bundle_info = {
+            "is_installed": len(installed_apps) > 0,
+            "installed_app_ids": installed_apps,
+            "installed_app_names": app_names,
+            "total_installed": len(installed_apps),
+            "manager_installed": self.is_manager_installed(),
+            "category_installed": self.is_category_installed(),
+            "bundle_prefix": self.bundle_prefix,
+            "availability_info": availability_info  # NEW: Detailed availability data
+        }
+        
+        # Add summary of app states
+        if availability_info:
+            available_count = sum(1 for avail in availability_info.values() 
+                                if avail and avail.is_available)
+            orphaned_count = len(installed_apps) - available_count
+            
+            bundle_info.update({
+                "apps_available": available_count,
+                "apps_orphaned": orphaned_count,
+                "has_orphaned_entries": orphaned_count > 0
+            })
+        
+        print(f"DEBUG: Enhanced bundle info result: {bundle_info}")
+        return bundle_info
+    
     def get_bundle_info(self) -> Dict:
-        """Get complete bundle installation information"""
+        """Get basic bundle installation information (backward compatibility)"""
         installed_apps = self.get_installed_bundle_apps()
         
         # Get app names for the installed apps
@@ -122,6 +186,42 @@ class BundleStateDetector:
         
         print(f"DEBUG: Bundle info result: {bundle_info}")
         return bundle_info
+    
+    def get_orphaned_entries(self, app_parser) -> List[Dict]:
+        """
+        Get list of bundle menu entries that point to uninstalled applications
+        
+        Returns list of dicts with app info and availability status
+        """
+        installed_bundle_apps = self.get_installed_bundle_apps()
+        orphaned_entries = []
+        
+        if not installed_bundle_apps:
+            return orphaned_entries
+        
+        # Get app data for installed bundle apps
+        bundle_app_data = []
+        for app_id in installed_bundle_apps:
+            app_data = app_parser.get_app_by_id(app_id)
+            if app_data:
+                bundle_app_data.append(app_data)
+        
+        # Check availability
+        availability_results = self.availability_detector.detect_multiple_apps(bundle_app_data, app_parser)
+        
+        # Find orphaned entries
+        for app_id in installed_bundle_apps:
+            availability = availability_results.get(app_id)
+            if availability and not availability.is_available:
+                app_data = app_parser.get_app_by_id(app_id)
+                orphaned_entries.append({
+                    'app_id': app_id,
+                    'app_data': app_data,
+                    'availability': availability
+                })
+        
+        print(f"DEBUG: Found {len(orphaned_entries)} orphaned entries")
+        return orphaned_entries
     
     def get_missing_apps(self, all_app_ids: List[str]) -> List[str]:
         """
@@ -193,3 +293,7 @@ class BundleStateDetector:
             "total_desktop_files": len(list(self.desktop_dir.glob(f"{self.bundle_prefix}-*.desktop"))),
             "total_icon_files": len(list(self.icons_dir.glob(f"{self.bundle_prefix}-*.png")))
         }
+    
+    def invalidate_availability_cache(self):
+        """Invalidate availability cache (call after installing/removing apps)"""
+        self.availability_detector.invalidate_cache()

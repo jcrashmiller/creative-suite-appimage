@@ -358,3 +358,366 @@
         └── system_utils.py
 
 25 directories, 333 files
+.
+├── assets
+│   ├── app_definitions.json
+│   ├── desktop_files
+│   │   ├── creative-suite-audacity.desktop
+│   │   ├── creative-suite-blender.desktop
+│   │   ├── creative-suite-bluegriffon.desktop
+│   │   ├── creative-suite-darktable.desktop
+│   │   ├── creative-suite-figma.desktop
+│   │   ├── creative-suite-gimp.desktop
+│   │   ├── creative-suite-inkscape.desktop
+│   │   ├── creative-suite-kdenlive.desktop
+│   │   ├── creative-suite-krita.desktop
+│   │   ├── creative-suite-libreofficedraw.desktop
+│   │   ├── creative-suite-main.desktop
+│   │   ├── creative-suite-okular.desktop
+│   │   ├── creative-suite-opentoonz.desktop
+│   │   ├── creative-suite-penpot.desktop
+│   │   ├── creative-suite-rawtherapee.desktop
+│   │   ├── creative-suite-scribus.desktop
+│   │   ├── creative-suite-synfig.desktop
+│   │   └── X-Creative_Suite.directory
+│   ├── icons
+│   │   ├── app-icons
+│   │   │   ├── 128x128
+│   │   │   │   ├── creative-suite-audacity.png
+│   │   │   │   ├── creative-suite-blender.png
+│   │   │   │   ├── creative-suite-bluegriffon.png
+│   │   │   │   ├── creative-suite-darktable.png
+│   │   │   │   ├── creative-suite-figma.png
+│   │   │   │   ├── creative-suite-gimp.png
+│   │   │   │   ├── creative-suite-inkscape.png
+│   │   │   │   ├── creative-suite-kdenlive.png
+│   │   │   │   ├── creative-suite-krita.png
+│   │   │   │   ├── creative-suite-libreofficedraw.png
+│   │   │   │   ├── creative-suite-main.png
+│   │   │   │   ├── creative-suite-okular.png
+│   │   │   │   ├── creative-suite-opentoonz.png
+│   │   │   │   ├── creative-suite-penpot.png
+│   │   │   │   ├── creative-suite-rawtherapee.png
+│   │   │   │   ├── creative-suite-scribus.png
+│   │   │   │   ├── creative-suite-synfig.png
+│   │   │   │   ├── test-creative-suite-audacity.png
+│   │   │   │   ├── test-creative-suite-blender.png
+│   │   │   │   ├── test-creative-suite-bluegriffon.png
+│   │   │   │   ├── test-creative-suite-darktable.png
+│   │   │   │   ├── test-creative-suite-figma.png
+│   │   │   │   ├── test-creative-suite-gimp.png
+│   │   │   │   ├── test-creative-suite-inkscape.png
+│   │   │   │   ├── test-creative-suite-kdenlive.png
+│   │   │   │   ├── test-creative-suite-krita.png
+│   │   │   │   ├── test-creative-suite-libreofficedraw.png
+│   │   │   │   ├── test-creative-suite-main.png
+│   │   │   │   ├── test-creative-suite-okular.png
+│   │   │   │   ├── test-creative-suite-opentoonz.png
+│   │   │   │   ├── test-creative-suite-penpot.png
+│   │   │   │   ├── test-creative-suite-rawtherapee.png
+│   │   │   │   ├── test-creative-suite-scribus.png
+│   │   │   │   └── test-creative-suite-synfig.png
+│   │   │   ├── 16x16
+│   │   │   │   ├── creative-suite-audacity.png
+│   │   │   │   ├── creative-suite-blender.png
+│   │   │   │   ├── creative-suite-bluegriffon.png
+│   │   │   │   ├── creative-suite-darktable.png
+│   │   │   │   ├── creative-suite-figma.png
+│   │   │   │   ├── creative-suite-gimp.png
+│   │   │   │   ├── creative-suite-inkscape.png
+│   │   │   │   ├── creative-suite-kdenlive.png
+│   │   │   │   ├── creative-suite-krita.png
+│   │   │   │   ├── creative-suite-libreofficedraw.png
+│   │   │   │   ├── creative-suite-main.png
+│   │   │   │   ├── creative-suite-okular.png
+│   │   │   │   ├── creative-suite-opentoonz.png
+│   │   │   │   ├── creative-suite-penpot.png
+│   │   │   │   ├── creative-suite-rawtherapee.png
+│   │   │   │   ├── creative-suite-scribus.png
+│   │   │   │   ├── creative-suite-synfig.png
+│   │   │   │   ├── test-creative-suite-audacity.png
+│   │   │   │   ├── test-creative-suite-blender.png
+│   │   │   │   ├── test-creative-suite-bluegriffon.png
+│   │   │   │   ├── test-creative-suite-darktable.png
+│   │   │   │   ├── test-creative-suite-figma.png
+│   │   │   │   ├── test-creative-suite-gimp.png
+│   │   │   │   ├── test-creative-suite-inkscape.png
+│   │   │   │   ├── test-creative-suite-kdenlive.png
+│   │   │   │   ├── test-creative-suite-krita.png
+│   │   │   │   ├── test-creative-suite-libreofficedraw.png
+│   │   │   │   ├── test-creative-suite-main.png
+│   │   │   │   ├── test-creative-suite-okular.png
+│   │   │   │   ├── test-creative-suite-opentoonz.png
+│   │   │   │   ├── test-creative-suite-penpot.png
+│   │   │   │   ├── test-creative-suite-rawtherapee.png
+│   │   │   │   ├── test-creative-suite-scribus.png
+│   │   │   │   └── test-creative-suite-synfig.png
+│   │   │   ├── 24x24
+│   │   │   │   ├── creative-suite-audacity.png
+│   │   │   │   ├── creative-suite-blender.png
+│   │   │   │   ├── creative-suite-bluegriffon.png
+│   │   │   │   ├── creative-suite-darktable.png
+│   │   │   │   ├── creative-suite-figma.png
+│   │   │   │   ├── creative-suite-gimp.png
+│   │   │   │   ├── creative-suite-inkscape.png
+│   │   │   │   ├── creative-suite-kdenlive.png
+│   │   │   │   ├── creative-suite-krita.png
+│   │   │   │   ├── creative-suite-libreofficedraw.png
+│   │   │   │   ├── creative-suite-main.png
+│   │   │   │   ├── creative-suite-okular.png
+│   │   │   │   ├── creative-suite-opentoonz.png
+│   │   │   │   ├── creative-suite-penpot.png
+│   │   │   │   ├── creative-suite-rawtherapee.png
+│   │   │   │   ├── creative-suite-scribus.png
+│   │   │   │   ├── creative-suite-synfig.png
+│   │   │   │   ├── test-creative-suite-audacity.png
+│   │   │   │   ├── test-creative-suite-blender.png
+│   │   │   │   ├── test-creative-suite-bluegriffon.png
+│   │   │   │   ├── test-creative-suite-darktable.png
+│   │   │   │   ├── test-creative-suite-figma.png
+│   │   │   │   ├── test-creative-suite-gimp.png
+│   │   │   │   ├── test-creative-suite-inkscape.png
+│   │   │   │   ├── test-creative-suite-kdenlive.png
+│   │   │   │   ├── test-creative-suite-krita.png
+│   │   │   │   ├── test-creative-suite-libreofficedraw.png
+│   │   │   │   ├── test-creative-suite-main.png
+│   │   │   │   ├── test-creative-suite-okular.png
+│   │   │   │   ├── test-creative-suite-opentoonz.png
+│   │   │   │   ├── test-creative-suite-penpot.png
+│   │   │   │   ├── test-creative-suite-rawtherapee.png
+│   │   │   │   ├── test-creative-suite-scribus.png
+│   │   │   │   └── test-creative-suite-synfig.png
+│   │   │   ├── 32x32
+│   │   │   │   ├── creative-suite-audacity.png
+│   │   │   │   ├── creative-suite-blender.png
+│   │   │   │   ├── creative-suite-bluegriffon.png
+│   │   │   │   ├── creative-suite-darktable.png
+│   │   │   │   ├── creative-suite-figma.png
+│   │   │   │   ├── creative-suite-gimp.png
+│   │   │   │   ├── creative-suite-inkscape.png
+│   │   │   │   ├── creative-suite-kdenlive.png
+│   │   │   │   ├── creative-suite-krita.png
+│   │   │   │   ├── creative-suite-libreofficedraw.png
+│   │   │   │   ├── creative-suite-main.png
+│   │   │   │   ├── creative-suite-okular.png
+│   │   │   │   ├── creative-suite-opentoonz.png
+│   │   │   │   ├── creative-suite-penpot.png
+│   │   │   │   ├── creative-suite-rawtherapee.png
+│   │   │   │   ├── creative-suite-scribus.png
+│   │   │   │   ├── creative-suite-synfig.png
+│   │   │   │   ├── test-creative-suite-audacity.png
+│   │   │   │   ├── test-creative-suite-blender.png
+│   │   │   │   ├── test-creative-suite-bluegriffon.png
+│   │   │   │   ├── test-creative-suite-darktable.png
+│   │   │   │   ├── test-creative-suite-figma.png
+│   │   │   │   ├── test-creative-suite-gimp.png
+│   │   │   │   ├── test-creative-suite-inkscape.png
+│   │   │   │   ├── test-creative-suite-kdenlive.png
+│   │   │   │   ├── test-creative-suite-krita.png
+│   │   │   │   ├── test-creative-suite-libreofficedraw.png
+│   │   │   │   ├── test-creative-suite-main.png
+│   │   │   │   ├── test-creative-suite-okular.png
+│   │   │   │   ├── test-creative-suite-opentoonz.png
+│   │   │   │   ├── test-creative-suite-penpot.png
+│   │   │   │   ├── test-creative-suite-rawtherapee.png
+│   │   │   │   ├── test-creative-suite-scribus.png
+│   │   │   │   └── test-creative-suite-synfig.png
+│   │   │   ├── 48x48
+│   │   │   │   ├── creative-suite-audacity.png
+│   │   │   │   ├── creative-suite-blender.png
+│   │   │   │   ├── creative-suite-bluegriffon.png
+│   │   │   │   ├── creative-suite-darktable.png
+│   │   │   │   ├── creative-suite-figma.png
+│   │   │   │   ├── creative-suite-gimp.png
+│   │   │   │   ├── creative-suite-inkscape.png
+│   │   │   │   ├── creative-suite-kdenlive.png
+│   │   │   │   ├── creative-suite-krita.png
+│   │   │   │   ├── creative-suite-libreofficedraw.png
+│   │   │   │   ├── creative-suite-main.png
+│   │   │   │   ├── creative-suite-okular.png
+│   │   │   │   ├── creative-suite-opentoonz.png
+│   │   │   │   ├── creative-suite-penpot.png
+│   │   │   │   ├── creative-suite-rawtherapee.png
+│   │   │   │   ├── creative-suite-scribus.png
+│   │   │   │   ├── creative-suite-synfig.png
+│   │   │   │   ├── test-creative-suite-audacity.png
+│   │   │   │   ├── test-creative-suite-blender.png
+│   │   │   │   ├── test-creative-suite-bluegriffon.png
+│   │   │   │   ├── test-creative-suite-darktable.png
+│   │   │   │   ├── test-creative-suite-figma.png
+│   │   │   │   ├── test-creative-suite-gimp.png
+│   │   │   │   ├── test-creative-suite-inkscape.png
+│   │   │   │   ├── test-creative-suite-kdenlive.png
+│   │   │   │   ├── test-creative-suite-krita.png
+│   │   │   │   ├── test-creative-suite-libreofficedraw.png
+│   │   │   │   ├── test-creative-suite-main.png
+│   │   │   │   ├── test-creative-suite-okular.png
+│   │   │   │   ├── test-creative-suite-opentoonz.png
+│   │   │   │   ├── test-creative-suite-penpot.png
+│   │   │   │   ├── test-creative-suite-rawtherapee.png
+│   │   │   │   ├── test-creative-suite-scribus.png
+│   │   │   │   └── test-creative-suite-synfig.png
+│   │   │   └── 64x64
+│   │   │       ├── creative-suite-audacity.png
+│   │   │       ├── creative-suite-blender.png
+│   │   │       ├── creative-suite-bluegriffon.png
+│   │   │       ├── creative-suite-darktable.png
+│   │   │       ├── creative-suite-figma.png
+│   │   │       ├── creative-suite-gimp.png
+│   │   │       ├── creative-suite-inkscape.png
+│   │   │       ├── creative-suite-kdenlive.png
+│   │   │       ├── creative-suite-krita.png
+│   │   │       ├── creative-suite-libreofficedraw.png
+│   │   │       ├── creative-suite-main.png
+│   │   │       ├── creative-suite-okular.png
+│   │   │       ├── creative-suite-opentoonz.png
+│   │   │       ├── creative-suite-penpot.png
+│   │   │       ├── creative-suite-rawtherapee.png
+│   │   │       ├── creative-suite-scribus.png
+│   │   │       ├── creative-suite-synfig.png
+│   │   │       ├── test-creative-suite-audacity.png
+│   │   │       ├── test-creative-suite-blender.png
+│   │   │       ├── test-creative-suite-bluegriffon.png
+│   │   │       ├── test-creative-suite-darktable.png
+│   │   │       ├── test-creative-suite-figma.png
+│   │   │       ├── test-creative-suite-gimp.png
+│   │   │       ├── test-creative-suite-inkscape.png
+│   │   │       ├── test-creative-suite-kdenlive.png
+│   │   │       ├── test-creative-suite-krita.png
+│   │   │       ├── test-creative-suite-libreofficedraw.png
+│   │   │       ├── test-creative-suite-main.png
+│   │   │       ├── test-creative-suite-okular.png
+│   │   │       ├── test-creative-suite-opentoonz.png
+│   │   │       ├── test-creative-suite-penpot.png
+│   │   │       ├── test-creative-suite-rawtherapee.png
+│   │   │       ├── test-creative-suite-scribus.png
+│   │   │       └── test-creative-suite-synfig.png
+│   │   ├── desktop-icons
+│   │   │   ├── creative-suite-audacity.png
+│   │   │   ├── creative-suite-blender.png
+│   │   │   ├── creative-suite-bluegriffon.png
+│   │   │   ├── creative-suite-darktable.png
+│   │   │   ├── creative-suite-figma.png
+│   │   │   ├── creative-suite-gimp.png
+│   │   │   ├── creative-suite-inkscape.png
+│   │   │   ├── creative-suite-kdenlive.png
+│   │   │   ├── creative-suite-krita.png
+│   │   │   ├── creative-suite-libreofficedraw.png
+│   │   │   ├── creative-suite-main.png
+│   │   │   ├── creative-suite-okular.png
+│   │   │   ├── creative-suite-opentoonz.png
+│   │   │   ├── creative-suite-penpot.png
+│   │   │   ├── creative-suite-rawtherapee.png
+│   │   │   ├── creative-suite-scribus.png
+│   │   │   ├── creative-suite-synfig.png
+│   │   │   ├── test-creative-suite-audacity.png
+│   │   │   ├── test-creative-suite-blender.png
+│   │   │   ├── test-creative-suite-bluegriffon.png
+│   │   │   ├── test-creative-suite-darktable.png
+│   │   │   ├── test-creative-suite-figma.png
+│   │   │   ├── test-creative-suite-gimp.png
+│   │   │   ├── test-creative-suite-inkscape.png
+│   │   │   ├── test-creative-suite-kdenlive.png
+│   │   │   ├── test-creative-suite-krita.png
+│   │   │   ├── test-creative-suite-libreofficedraw.png
+│   │   │   ├── test-creative-suite-main.png
+│   │   │   ├── test-creative-suite-okular.png
+│   │   │   ├── test-creative-suite-opentoonz.png
+│   │   │   ├── test-creative-suite-penpot.png
+│   │   │   ├── test-creative-suite-rawtherapee.png
+│   │   │   ├── test-creative-suite-scribus.png
+│   │   │   └── test-creative-suite-synfig.png
+│   │   ├── original
+│   │   │   ├── creative-suite-audacity.png
+│   │   │   ├── creative-suite-blender.png
+│   │   │   ├── creative-suite-bluegriffon.png
+│   │   │   ├── creative-suite-darktable.png
+│   │   │   ├── creative-suite-figma.png
+│   │   │   ├── creative-suite-gimp.png
+│   │   │   ├── creative-suite-inkscape.png
+│   │   │   ├── creative-suite-kdenlive.png
+│   │   │   ├── creative-suite-krita.png
+│   │   │   ├── creative-suite-libreofficedraw.png
+│   │   │   ├── creative-suite-main.png
+│   │   │   ├── creative-suite-okular.png
+│   │   │   ├── creative-suite-opentoonz.png
+│   │   │   ├── creative-suite-penpot.png
+│   │   │   ├── creative-suite-rawtherapee.png
+│   │   │   ├── creative-suite-scribus.png
+│   │   │   ├── creative-suite-synfig.png
+│   │   │   ├── test-creative-suite-audacity.png
+│   │   │   ├── test-creative-suite-blender.png
+│   │   │   ├── test-creative-suite-bluegriffon.png
+│   │   │   ├── test-creative-suite-darktable.png
+│   │   │   ├── test-creative-suite-figma.png
+│   │   │   ├── test-creative-suite-gimp.png
+│   │   │   ├── test-creative-suite-inkscape.png
+│   │   │   ├── test-creative-suite-kdenlive.png
+│   │   │   ├── test-creative-suite-krita.png
+│   │   │   ├── test-creative-suite-libreofficedraw.png
+│   │   │   ├── test-creative-suite-main.png
+│   │   │   ├── test-creative-suite-okular.png
+│   │   │   ├── test-creative-suite-opentoonz.png
+│   │   │   ├── test-creative-suite-penpot.png
+│   │   │   ├── test-creative-suite-rawtherapee.png
+│   │   │   ├── test-creative-suite-scribus.png
+│   │   │   └── test-creative-suite-synfig.png
+│   │   └── suite-icons
+│   │       ├── lss-logo.png
+│   │       └── lss-logo-transparent-bg.png
+│   └── images
+│       └── screenshots
+├── build
+│   ├── appimage_config
+│   ├── build_appimage.sh
+│   └── requirements.txt
+├── CLIENT_CONTRACT_TEMPLATE.md
+├── directory_structure.txt
+├── Headers text.txt
+├── JSON_LICENSE
+├── LICENSE
+├── README.md
+└── src
+    ├── core
+    │   ├── app_manager.py
+    │   ├── bundle_state_detector.py
+    │   ├── config.py
+    │   ├── desktop_integration.py
+    │   ├── __init__.py
+    │   ├── package_manager.py
+    │   └── __pycache__
+    │       ├── bundle_state_detector.cpython-312.pyc
+    │       ├── config.cpython-312.pyc
+    │       ├── desktop_integration.cpython-312.pyc
+    │       ├── __init__.cpython-312.pyc
+    │       └── package_manager.cpython-312.pyc
+    ├── gui
+    │   ├── appimage_integration.py
+    │   ├── base_page.py
+    │   ├── __init__.py
+    │   ├── installation_page (copy).py
+    │   ├── installation_page.py
+    │   ├── main_window.py
+    │   ├── manager_page.py
+    │   ├── __pycache__
+    │   │   ├── base_page.cpython-312.pyc
+    │   │   ├── __init__.cpython-312.pyc
+    │   │   ├── installation_page.cpython-312.pyc
+    │   │   ├── main_window.cpython-312.pyc
+    │   │   ├── manager_page.cpython-312.pyc
+    │   │   ├── selection_page.cpython-312.pyc
+    │   │   ├── styles.cpython-312.pyc
+    │   │   └── welcome_page.cpython-312.pyc
+    │   ├── selection_page.py
+    │   ├── styles.py
+    │   └── welcome_page.py
+    ├── main.py
+    └── utils
+        ├── __init__.py
+        ├── json_parser.py
+        ├── __pycache__
+        │   ├── __init__.cpython-312.pyc
+        │   └── json_parser.cpython-312.pyc
+        └── system_utils.py
+
+25 directories, 336 files

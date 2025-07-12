@@ -31,7 +31,7 @@ class SelectionPage(BasePage):
         self.state_detector = BundleStateDetector(config)
         
         # Get current bundle state
-        self.bundle_info = self.state_detector.get_bundle_info()
+        self.bundle_info = self.state_detector.get_bundle_info_with_availability(app_parser)
         self.currently_installed = self.bundle_info["installed_app_ids"]
         
         print(f"DEBUG: Bundle info: {self.bundle_info}")  # Debug output
@@ -94,6 +94,78 @@ class SelectionPage(BasePage):
         
         info_label = ttk.Label(info_frame, text=info_text, justify='left')
         info_label.pack(anchor="w")
+
+    def show_availability_warnings(self):
+        """Show warnings for orphaned menu entries"""
+        orphaned_entries = self.state_detector.get_orphaned_entries(self.app_parser)
+        
+        if orphaned_entries:
+            warning_frame = ttk.LabelFrame(self.content_frame, text="⚠ Attention Required", padding=10)
+            warning_frame.pack(fill="x", pady=(0, 15), padx=10)
+            
+            warning_text = f"Found {len(orphaned_entries)} menu entries for applications that are no longer installed:\n"
+            for entry in orphaned_entries[:3]:  # Show first 3
+                app_name = entry['app_data'].get('name', entry['app_id'])
+                warning_text += f"• {app_name}\n"
+            
+            if len(orphaned_entries) > 3:
+                warning_text += f"• ... and {len(orphaned_entries) - 3} more\n"
+            
+            warning_text += "\nThese applications were likely removed outside the bundle manager."
+            
+            warning_label = ttk.Label(warning_frame, text=warning_text, justify='left', foreground='orange')
+            warning_label.pack(anchor="w", pady=(0, 5))
+            
+            # Cleanup button
+            cleanup_button = ttk.Button(
+                warning_frame,
+                text="Clean Up Orphaned Entries",
+                command=self.cleanup_orphaned_entries
+            )
+            cleanup_button.pack(anchor="w")
+
+    def cleanup_orphaned_entries(self):
+        """Remove orphaned menu entries"""
+        orphaned_entries = self.state_detector.get_orphaned_entries(self.app_parser)
+        
+        if not orphaned_entries:
+            messagebox.showinfo("No Orphaned Entries", "No orphaned menu entries found.")
+            return
+        
+        app_names = [entry['app_data'].get('name', entry['app_id']) for entry in orphaned_entries]
+        
+        if messagebox.askyesno(
+            "Clean Up Orphaned Entries",
+            f"Remove menu entries for {len(orphaned_entries)} applications that are no longer installed?\n\n" +
+            "\n".join(f"• {name}" for name in app_names[:5]) +
+            (f"\n• ... and {len(app_names) - 5} more" if len(app_names) > 5 else "")
+        ):
+            try:
+                from core.desktop_integration import DesktopIntegrator
+                integrator = DesktopIntegrator(self.config)
+                
+                orphaned_ids = [entry['app_id'] for entry in orphaned_entries]
+                removed_count = integrator.remove_apps_from_bundle(orphaned_ids)
+                
+                # Invalidate cache and refresh
+                self.state_detector.invalidate_availability_cache()
+                
+                messagebox.showinfo(
+                    "Cleanup Complete", 
+                    f"Removed {removed_count} orphaned menu entries.\n\nRefresh the page to see updated status."
+                )
+                
+                # Refresh the current page
+                # Find main window and refresh selection page
+                current = self.parent
+                while current and not hasattr(current, 'show_selection_page'):
+                    current = getattr(current, 'master', None) or getattr(current, 'parent', None)
+                
+                if current and hasattr(current, 'show_selection_page'):
+                    current.show_selection_page(success_message="Orphaned entries cleaned up successfully")
+                
+            except Exception as e:
+                messagebox.showerror("Cleanup Failed", f"Could not clean up orphaned entries:\n{str(e)}")
     
     def setup_scrollable_frame(self):
         """Create a scrollable frame for the content"""
@@ -379,6 +451,18 @@ Continue with {suite_name} removal?"""
                 font=('Arial', 8, 'bold')
             )
             status_label.pack(anchor="w")
+
+        # Show availability status
+        if app_id in self.bundle_info.get("availability_info", {}):
+            availability = self.bundle_info["availability_info"][app_id]
+            if availability and not availability.is_available:
+                status_label = ttk.Label(
+                    info_frame, 
+                    text="[ORPHANED - APP REMOVED]", 
+                    foreground='red', 
+                    font=('Arial', 8, 'bold')
+                )
+                status_label.pack(anchor="w")
         
         # Required indicator (if any apps are still marked required)
         if app.get('required', False):

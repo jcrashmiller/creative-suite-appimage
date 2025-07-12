@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Linux Bundle Installer - Main Window (FIXED with Callbacks)
+Linux Bundle Installer - Main Window (FIXED Navigation)
 Copyright (c) 2025 Loading Screen Solutions
 
 Licensed under the MIT License. See LICENSE file for details.
@@ -137,10 +137,11 @@ class MainWindow:
             self.status_label.config(text=status_text)
             print(f"DEBUG: Main window status updated to: {status_text}")
             
-            # Enable next button when installation/operation is complete
+            # Enable navigation buttons when complete
             if status_text in ["Complete", "Failed", "Bundle Removal Complete"]:
                 self.next_button.config(state='normal')
-                print(f"DEBUG: Next button enabled")
+                self.back_button.config(state='normal')  # ENABLE BACK BUTTON
+                print(f"DEBUG: Navigation buttons enabled")
             
             # Force GUI update
             self.root.update_idletasks()
@@ -168,6 +169,7 @@ class MainWindow:
     
     def show_selection_page(self, success_message=None):
         """Show the application selection page"""
+        print(f"DEBUG: MainWindow.show_selection_page called with message: {success_message}")
         self._clear_content_frame()
         
         self.current_page = SelectionPage(
@@ -179,6 +181,7 @@ class MainWindow:
         
         # Show success banner if provided
         if success_message:
+            print(f"DEBUG: Showing success banner: {success_message}")
             self.show_success_banner(success_message)
         
         # Update navigation
@@ -189,9 +192,13 @@ class MainWindow:
         else:
             self.next_button.config(text="Install Selected →", state="normal")
         self.status_label.config(text="Select Applications")
+        
+        print("DEBUG: Selection page shown successfully")
     
     def show_success_banner(self, message):
         """Show a temporary success banner at the top of the window"""
+        print(f"DEBUG: Creating success banner with message: {message}")
+        
         # Create banner frame
         banner = ttk.Frame(self.main_frame, style='Success.TFrame')
         banner.grid(row=0, column=0, sticky="ew", padx=10, pady=(10, 5))
@@ -211,20 +218,25 @@ class MainWindow:
         # Move content frame down
         self.content_frame.grid(row=1, column=0, sticky="nsew")
         
-        # Auto-remove banner after 3 seconds
-        self.root.after(3000, lambda: self._remove_banner(banner))
+        # Auto-remove banner after 4 seconds (longer to ensure user sees it)
+        self.root.after(4000, lambda: self._remove_banner(banner))
+        
+        print("DEBUG: Success banner created and scheduled for removal")
 
     def _remove_banner(self, banner):
         """Remove the success banner"""
         try:
+            print("DEBUG: Removing success banner")
             banner.destroy()
             # Move content frame back to row 0
             self.content_frame.grid(row=0, column=0, sticky="nsew")
-        except:
-            pass    
+            print("DEBUG: Success banner removed successfully")
+        except Exception as e:
+            print(f"DEBUG: Error removing banner: {e}")    
     
     def show_installation_page(self, selected_apps):
         """Show the installation progress page"""
+        print(f"DEBUG: MainWindow.show_installation_page called")
         self._clear_content_frame()
         
         # FIXED: Pass the status callback to InstallationPage
@@ -242,9 +254,12 @@ class MainWindow:
         self.back_button.config(state="disabled")
         self.next_button.config(state="disabled")
         self.status_label.config(text="Installing...")
+        
+        print("DEBUG: Installation page created successfully")
     
     def show_manager_page(self):
         """Show the application manager page"""
+        print("DEBUG: MainWindow.show_manager_page called")
         self._clear_content_frame()
         
         self.current_page = ManagerPage(
@@ -258,35 +273,46 @@ class MainWindow:
         self.back_button.config(state="disabled")
         self.next_button.config(text="Close", state="normal")
         self.status_label.config(text="Manage Applications")
+        
+        print("DEBUG: Manager page shown successfully")
     
     def go_back(self):
         """Handle back button click - fixed navigation logic"""
         try:
+            print(f"DEBUG: go_back called from page type: {self.current_page_type}")
+            
             # Let the current page handle back if it has the method
             if hasattr(self.current_page, 'on_back'):
                 result = self.current_page.on_back()
                 # If page handled it and returned False, don't do default navigation
                 if result is False:
                     return
-            
             # Default back navigation based on current page type
             if self.current_page_type == "selection":
                 self.show_welcome_page()
             elif self.current_page_type == "manager":
                 # After installation completes, back should go to selection for re-modification
                 self.show_selection_page()
-            # Welcome and installation pages don't have back navigation
-            
+            elif self.current_page_type == "installation":
+                # Let installation page handle back navigation
+                print("DEBUG: Back clicked on installation page")
+                # Installation page will handle this directly
+                pass
+            # Welcome page doesn't have back navigation            
+
         except Exception as e:
             self._handle_error("Navigation Error", e)
     
     def go_next(self):
         """Handle next button click"""
         try:
+            print(f"DEBUG: go_next called from page type: {self.current_page_type}")
+            
             # Get result from current page if it has on_next method
             result = None
             if hasattr(self.current_page, 'on_next'):
                 result = self.current_page.on_next()
+                print(f"DEBUG: on_next returned: {type(result)} - {result}")
             
             # Handle page transitions based on current page type and result
             if self.current_page_type == "welcome":
@@ -296,16 +322,20 @@ class MainWindow:
                 if result:  # result should be selected apps or removal data
                     # Check if this is a bundle removal operation
                     if isinstance(result, dict) and result.get('mode') == 'remove_bundle':
+                        print("DEBUG: Starting bundle removal process")
                         # Start removal process
                         self.show_installation_page(result)
                     else:
+                        print("DEBUG: Starting normal installation/modification")
                         # Normal installation/modification
                         self.show_installation_page(result)
                         
             elif self.current_page_type == "manager":
+                print("DEBUG: Closing from manager page")
                 self._on_closing()
                 
             elif self.current_page_type == "installation":
+                print("DEBUG: Installation page handles its own completion")
                 # Installation page handles its own completion via on_complete callback
                 pass
                 
@@ -339,13 +369,18 @@ class MainWindow:
         """Handle and display errors"""
         error_msg = f"An error occurred:\n\n{str(error)}\n\nDetails:\n{traceback.format_exc()}"
         messagebox.showerror(title, error_msg)
+        print(f"ERROR: {title} - {error}")
+        traceback.print_exc()
     
     def _on_closing(self):
         """Handle window closing"""
+        print("DEBUG: MainWindow._on_closing called")
         if hasattr(self.current_page, 'on_closing'):
             if not self.current_page.on_closing():
+                print("DEBUG: Page prevented closing")
                 return  # Page prevented closing
         
+        print("DEBUG: Quitting application")
         self.root.quit()
 
 # Page interface for consistency
