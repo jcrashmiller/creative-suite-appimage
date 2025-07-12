@@ -1,24 +1,201 @@
 #!/usr/bin/env python3
 """
-Linux Bundle Installer - Application Selection Page with Desktop File Detection
+Linux Bundle Installer - Application Selection Page (PySide2 Version)
 Copyright (c) 2025 Loading Screen Solutions
 
 Licensed under the MIT License. See LICENSE file for details.
 
 Author: James T. Miller
 Created: 2025-06-01
+Ported to PySide2: 2025-07-12
 """
 
-import tkinter as tk
-from tkinter import ttk, messagebox
-from PIL import Image, ImageTk
-import os
 from pathlib import Path
+from PySide2.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QFrame,
+    QLabel, QPushButton, QCheckBox, QGroupBox, QTextEdit,
+    QMessageBox, QSizePolicy
+)
+from PySide2.QtCore import Qt, QSize
+from PySide2.QtGui import QFont, QPixmap
+
 from gui.base_page import BasePage
 from core.bundle_state_detector import BundleStateDetector
 
+class ModernButton(QPushButton):
+    """Modern styled button"""
+    def __init__(self, text, button_type="normal", parent=None):
+        super().__init__(text, parent)
+        
+        if button_type == "danger":
+            self.setStyleSheet("""
+                QPushButton {
+                    background-color: #dc3545;
+                    color: white;
+                    border: none;
+                    padding: 6px 12px;
+                    border-radius: 4px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #c82333;
+                }
+                QPushButton:pressed {
+                    background-color: #bd2130;
+                }
+            """)
+        else:
+            self.setStyleSheet("""
+                QPushButton {
+                    background-color: #007bff;
+                    color: white;
+                    border: none;
+                    padding: 6px 12px;
+                    border-radius: 4px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #0056b3;
+                }
+                QPushButton:pressed {
+                    background-color: #004085;
+                }
+            """)
+
+class AppEntryWidget(QFrame):
+    """Custom widget for each application entry"""
+    
+    def __init__(self, app_data, is_currently_installed, config, parent=None):
+        super().__init__(parent)
+        self.app_data = app_data
+        self.is_currently_installed = is_currently_installed
+        self.config = config
+        
+        self.setFrameStyle(QFrame.Box)
+        self.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border: 1px solid #e0e0e0;
+                border-radius: 6px;
+                padding: 8px;
+                margin: 4px;
+            }
+            QFrame:hover {
+                border-color: #007bff;
+                background-color: #f8f9ff;
+            }
+        """)
+        
+        self.setup_ui()
+    
+    def setup_ui(self):
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(10, 8, 10, 8)
+        layout.setSpacing(10)
+        
+        # Checkbox
+        self.checkbox = QCheckBox()
+        # Set initial state
+        if self.is_currently_installed:
+            self.checkbox.setChecked(True)
+        else:
+            self.checkbox.setChecked(self.app_data.get('default_selected', False))
+        layout.addWidget(self.checkbox)
+        
+        # Icon
+        icon_label = QLabel()
+        icon_label.setFixedSize(60, 60)  # Larger container for breathing room
+        
+        # Load icon
+        icon_pixmap = self.load_app_icon()
+        if icon_pixmap:
+            scaled_pixmap = icon_pixmap.scaled(32, 32, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            icon_label.setPixmap(scaled_pixmap)
+            icon_label.setAlignment(Qt.AlignCenter)  # Center the 32px icon in the 60px container
+        else:
+            icon_label.setStyleSheet("background-color: #e0e0e0; border-radius: 6px; font-size: 18px;")
+            icon_label.setText("📱")
+            icon_label.setAlignment(Qt.AlignCenter)
+        
+        layout.addWidget(icon_label)
+        
+        # App info
+        info_widget = QWidget()
+        info_layout = QVBoxLayout(info_widget)
+        info_layout.setContentsMargins(0, 0, 0, 0)
+        info_layout.setSpacing(2)
+        
+        # App name
+        name_label = QLabel(self.app_data.get('name', 'Unknown'))
+        name_font = QFont()
+        name_font.setBold(True)
+        name_font.setPointSize(11)
+        name_label.setFont(name_font)
+        info_layout.addWidget(name_label)
+        
+        # Description
+        description = self.app_data.get('description', '')
+        if description:
+            desc_label = QLabel(description)
+            desc_label.setStyleSheet("color: #666666; font-size: 9px;")
+            desc_label.setWordWrap(True)
+            info_layout.addWidget(desc_label)
+        
+        # Adobe equivalent
+        adobe_equiv = self.app_data.get('adobe_equivalent', '')
+        if adobe_equiv:
+            equiv_label = QLabel(f"Alternative to: {adobe_equiv}")
+            equiv_label.setStyleSheet("color: #0066cc; font-size: 9px; font-style: italic;")
+            info_layout.addWidget(equiv_label)
+        
+        # Status indicators
+        if self.is_currently_installed:
+            status_label = QLabel("[CURRENTLY IN BUNDLE]")
+            status_label.setStyleSheet("color: #28a745; font-size: 8px; font-weight: bold;")
+            info_layout.addWidget(status_label)
+        
+        if self.app_data.get('required', False):
+            req_label = QLabel("[RECOMMENDED]")
+            req_label.setStyleSheet("color: #007bff; font-size: 8px; font-weight: bold;")
+            info_layout.addWidget(req_label)
+        
+        layout.addWidget(info_widget, 1)  # Give it stretch priority
+    
+    def load_app_icon(self):
+        """Load app icon with fallback options"""
+        app_id = self.app_data.get('id', '')
+        
+        # Try to find icon file
+        icon_paths_to_try = [
+            self.config.app_icons_dir / f"creative-suite-{app_id}.png",
+            self.config.app_icons_dir / f"{app_id}.png",
+            # Try your available icon sizes in order of preference
+            Path(f"/usr/share/icons/hicolor/32x32/apps/{app_id}.png"),
+            Path(f"/usr/share/icons/hicolor/48x48/apps/{app_id}.png"),
+            Path(f"/usr/share/icons/hicolor/24x24/apps/{app_id}.png"),
+            Path(f"/usr/share/pixmaps/{app_id}.png"),
+        ]
+        
+        for icon_path in icon_paths_to_try:
+            if icon_path.exists():
+                try:
+                    return QPixmap(str(icon_path))
+                except Exception as e:
+                    print(f"Warning: Could not load icon {icon_path}: {e}")
+                    continue
+        
+        return None
+    
+    def is_checked(self):
+        """Return checkbox state"""
+        return self.checkbox.isChecked()
+    
+    def set_checked(self, checked):
+        """Set checkbox state"""
+        self.checkbox.setChecked(checked)
+
 class SelectionPage(BasePage):
-    """Application selection page with desktop file detection and icons"""
+    """Application selection page with PySide2"""
     
     def __init__(self, parent, app_parser, config):
         self.app_parser = app_parser
@@ -34,22 +211,23 @@ class SelectionPage(BasePage):
         self.bundle_info = self.state_detector.get_bundle_info_with_availability(app_parser)
         self.currently_installed = self.bundle_info["installed_app_ids"]
         
-        print(f"DEBUG: Bundle info: {self.bundle_info}")  # Debug output
+        print(f"DEBUG: Bundle info: {self.bundle_info}")
         
-        self.app_checkboxes = {}  # Store checkbox variables
-        self.app_widgets = {}     # Store widget references
-        self.icons_cache = {}     # Cache loaded icons
+        self.app_widgets = {}  # Store widget references
+        self._removal_result = None  # For bundle removal
         
         super().__init__(parent, config)
     
     def setup_ui(self):
         """Set up the application selection interface"""
+        # Main layout
+        main_layout = QVBoxLayout(self.parent)
+        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.setSpacing(15)
+        
         # Get suite info for dynamic titles
         suite_info = self.app_parser.get_suite_info()
         suite_name = suite_info.get('name', 'Application Bundle')
-        
-        # Main container with scrolling
-        self.setup_scrollable_frame()
         
         # Dynamic title based on bundle state
         if self.bundle_info["is_installed"]:
@@ -59,29 +237,43 @@ class SelectionPage(BasePage):
             title_text = f"Select {suite_name} Applications"
             desc_text = f"Choose which {suite_name.lower()} applications to install. Recommended applications are pre-selected."
         
-        title = ttk.Label(self.content_frame, text=title_text, style='Title.TLabel')
-        title.pack(pady=(0, 20))
+        # Title
+        title = QLabel(title_text)
+        title_font = QFont()
+        title_font.setPointSize(16)
+        title_font.setBold(True)
+        title.setFont(title_font)
+        title.setAlignment(Qt.AlignCenter)
+        main_layout.addWidget(title)
         
-        desc_label = ttk.Label(self.content_frame, text=desc_text, style='Heading.TLabel')
-        desc_label.pack(pady=(0, 20))
+        # Description
+        desc_label = QLabel(desc_text)
+        desc_label.setWordWrap(True)
+        desc_label.setAlignment(Qt.AlignCenter)
+        desc_label.setStyleSheet("color: #666666; font-size: 11px; margin-bottom: 10px;")
+        main_layout.addWidget(desc_label)
         
         # Show current state if bundle is installed
         if self.bundle_info["is_installed"]:
-            self.show_current_state_info()
+            self.show_current_state_info(main_layout)
         
         # Selection controls
-        self.create_selection_controls()
+        self.create_selection_controls(main_layout)
         
-        # Apps organized by category
-        self.create_app_selection_area()
+        # Scrollable app selection area
+        self.create_app_selection_area(main_layout)
         
         # Summary area
-        self.create_summary_area()
+        self.create_summary_area(main_layout)
+        
+        # Update selection count initially
+        self.update_selection_count()
+        self.update_summary()
     
-    def show_current_state_info(self):
+    def show_current_state_info(self, layout):
         """Show information about current bundle installation"""
-        info_frame = ttk.LabelFrame(self.content_frame, text="Current Installation", padding=10)
-        info_frame.pack(fill="x", pady=(0, 15), padx=10)
+        info_frame = QGroupBox("Current Installation")
+        info_layout = QVBoxLayout(info_frame)
         
         total = self.bundle_info["total_installed"]
         app_names = self.bundle_info["installed_app_names"]
@@ -92,401 +284,105 @@ class SelectionPage(BasePage):
             if len(app_names) > 5:
                 info_text += f"\n• ... and {len(app_names) - 5} more"
         
-        info_label = ttk.Label(info_frame, text=info_text, justify='left')
-        info_label.pack(anchor="w")
-
-    def show_availability_warnings(self):
-        """Show warnings for orphaned menu entries"""
-        orphaned_entries = self.state_detector.get_orphaned_entries(self.app_parser)
+        info_label = QLabel(info_text)
+        info_label.setStyleSheet("font-size: 10px;")
+        info_layout.addWidget(info_label)
         
-        if orphaned_entries:
-            warning_frame = ttk.LabelFrame(self.content_frame, text="⚠ Attention Required", padding=10)
-            warning_frame.pack(fill="x", pady=(0, 15), padx=10)
-            
-            warning_text = f"Found {len(orphaned_entries)} menu entries for applications that are no longer installed:\n"
-            for entry in orphaned_entries[:3]:  # Show first 3
-                app_name = entry['app_data'].get('name', entry['app_id'])
-                warning_text += f"• {app_name}\n"
-            
-            if len(orphaned_entries) > 3:
-                warning_text += f"• ... and {len(orphaned_entries) - 3} more\n"
-            
-            warning_text += "\nThese applications were likely removed outside the bundle manager."
-            
-            warning_label = ttk.Label(warning_frame, text=warning_text, justify='left', foreground='orange')
-            warning_label.pack(anchor="w", pady=(0, 5))
-            
-            # Cleanup button
-            cleanup_button = ttk.Button(
-                warning_frame,
-                text="Clean Up Orphaned Entries",
-                command=self.cleanup_orphaned_entries
-            )
-            cleanup_button.pack(anchor="w")
-
-    def cleanup_orphaned_entries(self):
-        """Remove orphaned menu entries"""
-        orphaned_entries = self.state_detector.get_orphaned_entries(self.app_parser)
-        
-        if not orphaned_entries:
-            messagebox.showinfo("No Orphaned Entries", "No orphaned menu entries found.")
-            return
-        
-        app_names = [entry['app_data'].get('name', entry['app_id']) for entry in orphaned_entries]
-        
-        if messagebox.askyesno(
-            "Clean Up Orphaned Entries",
-            f"Remove menu entries for {len(orphaned_entries)} applications that are no longer installed?\n\n" +
-            "\n".join(f"• {name}" for name in app_names[:5]) +
-            (f"\n• ... and {len(app_names) - 5} more" if len(app_names) > 5 else "")
-        ):
-            try:
-                from core.desktop_integration import DesktopIntegrator
-                integrator = DesktopIntegrator(self.config)
-                
-                orphaned_ids = [entry['app_id'] for entry in orphaned_entries]
-                removed_count = integrator.remove_apps_from_bundle(orphaned_ids)
-                
-                # Invalidate cache and refresh
-                self.state_detector.invalidate_availability_cache()
-                
-                messagebox.showinfo(
-                    "Cleanup Complete", 
-                    f"Removed {removed_count} orphaned menu entries.\n\nRefresh the page to see updated status."
-                )
-                
-                # Refresh the current page
-                # Find main window and refresh selection page
-                current = self.parent
-                while current and not hasattr(current, 'show_selection_page'):
-                    current = getattr(current, 'master', None) or getattr(current, 'parent', None)
-                
-                if current and hasattr(current, 'show_selection_page'):
-                    current.show_selection_page(success_message="Orphaned entries cleaned up successfully")
-                
-            except Exception as e:
-                messagebox.showerror("Cleanup Failed", f"Could not clean up orphaned entries:\n{str(e)}")
+        layout.addWidget(info_frame)
     
-    def setup_scrollable_frame(self):
-        """Create a scrollable frame for the content"""
-        # Create canvas and scrollbar
-        self.canvas = tk.Canvas(self.parent, highlightthickness=0)
-        self.scrollbar = ttk.Scrollbar(self.parent, orient="vertical", command=self.canvas.yview)
-        self.scrollable_frame = ttk.Frame(self.canvas)
-        
-        # Configure scrolling
-        self.scrollable_frame.bind(
-            "<Configure>",
-            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
-        )
-        
-        # Create window in canvas
-        self.canvas_window = self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
-        self.canvas.configure(yscrollcommand=self.scrollbar.set)
-        
-        # Pack canvas and scrollbar
-        self.canvas.pack(side="left", fill="both", expand=True)
-        self.scrollbar.pack(side="right", fill="y")
-        
-        # Handle canvas resizing
-        self.canvas.bind("<Configure>", self.on_canvas_configure)
-        
-        # Mouse wheel scrolling
-        self.canvas.bind("<MouseWheel>", self.on_mousewheel)
-        self.scrollable_frame.bind("<MouseWheel>", self.on_mousewheel)
-        
-        # Content frame is now the scrollable frame
-        self.content_frame = self.scrollable_frame
-    
-    def on_canvas_configure(self, event):
-        """Handle canvas resize"""
-        canvas_width = event.width
-        self.canvas.itemconfig(self.canvas_window, width=canvas_width)
-    
-    def on_mousewheel(self, event):
-        """Handle mouse wheel scrolling"""
-        self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-    
-    def load_app_icon(self, app_id):
-        """Load and cache an app icon"""
-        if app_id in self.icons_cache:
-            return self.icons_cache[app_id]
-        
-        # Try to find icon file - check multiple possible names/locations
-        icon_paths_to_try = [
-            # Custom Creative Suite icons (preferred)
-            self.config.app_icons_dir / f"creative-suite-{app_id}.png",
-            self.config.app_icons_dir / f"{app_id}.png",
-            # Fallback to system icons if available
-            Path(f"/usr/share/pixmaps/{app_id}.png"),
-            Path(f"/usr/share/icons/hicolor/32x32/apps/{app_id}.png"),
-        ]
-        
-        icon_photo = None
-        
-        for icon_path in icon_paths_to_try:
-            if icon_path.exists():
-                try:
-                    # Load and resize icon
-                    pil_image = Image.open(icon_path)
-                    # Resize to 32x32 for consistent appearance
-                    pil_image = pil_image.resize((32, 32), Image.Resampling.LANCZOS)
-                    icon_photo = ImageTk.PhotoImage(pil_image)
-                    break
-                except Exception as e:
-                    print(f"Warning: Could not load icon {icon_path}: {e}")
-                    continue
-        
-        # Create default icon if none found
-        if icon_photo is None:
-            icon_photo = self.create_default_icon(app_id)
-        
-        # Cache the icon
-        self.icons_cache[app_id] = icon_photo
-        return icon_photo
-    
-    def create_default_icon(self, app_id):
-        """Create a default icon if no icon file is found"""
-        # Create a simple colored square with initials
-        pil_image = Image.new('RGBA', (32, 32), (100, 150, 200, 255))
-        return ImageTk.PhotoImage(pil_image)
-    
-    def create_selection_controls(self):
+    def create_selection_controls(self, layout):
         """Create Select All/None buttons"""
-        controls_frame = ttk.Frame(self.content_frame)
-        controls_frame.pack(fill="x", pady=(0, 15))
+        controls_frame = QFrame()
+        controls_layout = QHBoxLayout(controls_frame)
+        controls_layout.setContentsMargins(0, 0, 0, 0)
         
         # Left side - selection buttons
-        left_controls = ttk.Frame(controls_frame)
-        left_controls.pack(side="left")
+        select_all_btn = ModernButton("Select All")
+        select_all_btn.clicked.connect(self.select_all)
+        controls_layout.addWidget(select_all_btn)
         
-        ttk.Button(
-            left_controls, 
-            text="Select All", 
-            command=self.select_all
-        ).pack(side="left", padx=(0, 10))
+        select_none_btn = ModernButton("Select None")
+        select_none_btn.clicked.connect(self.select_none)
+        controls_layout.addWidget(select_none_btn)
         
-        ttk.Button(
-            left_controls, 
-            text="Select None", 
-            command=self.select_none
-        ).pack(side="left", padx=(0, 10))
+        select_recommended_btn = ModernButton("Select Recommended")
+        select_recommended_btn.clicked.connect(self.select_recommended)
+        controls_layout.addWidget(select_recommended_btn)
         
-        ttk.Button(
-            left_controls, 
-            text="Select Recommended", 
-            command=self.select_recommended
-        ).pack(side="left")
+        # Add stretch
+        controls_layout.addStretch()
         
         # Right side - bundle management and selection count
-        right_controls = ttk.Frame(controls_frame)
-        right_controls.pack(side="right")
-        
-        # Add "Remove Bundle" button if bundle is installed - FIXED CONDITION
-        print(f"DEBUG: Checking bundle installation - is_installed: {self.bundle_info['is_installed']}")
-        print(f"DEBUG: Total installed: {self.bundle_info['total_installed']}")
-        
+        # Add "Remove Bundle" button if bundle is installed
         if self.bundle_info["is_installed"] and self.bundle_info["total_installed"] > 0:
-            print("DEBUG: Creating Remove Bundle button")
-            self.remove_bundle_button = ttk.Button(
-                right_controls,
-                text="🗑 Remove Bundle",
-                command=self.confirm_remove_bundle
-            )
-            self.remove_bundle_button.pack(side="left", padx=(0, 15))
-        else:
-            print("DEBUG: Not creating Remove Bundle button - bundle not installed")
+            self.remove_bundle_button = ModernButton("🗑 Remove Bundle", "danger")
+            self.remove_bundle_button.clicked.connect(self.confirm_remove_bundle)
+            controls_layout.addWidget(self.remove_bundle_button)
         
         # Selection count label
-        self.selection_count_label = ttk.Label(right_controls, text="")
-        self.selection_count_label.pack(side="left")
+        self.selection_count_label = QLabel("")
+        self.selection_count_label.setStyleSheet("font-weight: bold; margin-left: 15px;")
+        controls_layout.addWidget(self.selection_count_label)
+        
+        layout.addWidget(controls_frame)
     
-    def confirm_remove_bundle(self):
-        """Confirm and initiate complete bundle removal"""
-        suite_info = self.app_parser.get_suite_info()
-        suite_name = suite_info.get('name', 'Application Bundle')
-        
-        # Get list of currently installed apps for confirmation
-        app_names = self.bundle_info["installed_app_names"]
-        
-        # Show detailed confirmation
-        confirm_msg = f"""Remove {suite_name} Completely?
-
-This will remove:
-✓ All {suite_name} menu entries and icons
-✓ {suite_name} category from application menu
-
-✗ Applications remain installed:"""
-        
-        for app_name in app_names[:6]:
-            confirm_msg += f"\n  • {app_name}"
-        
-        if len(app_names) > 6:
-            confirm_msg += f"\n  • ... and {len(app_names) - 6} more"
-        
-        confirm_msg += f"""
-
-The applications will be available in their original menu locations.
-
-Continue with {suite_name} removal?"""
-        
-        if messagebox.askyesno(f"Remove {suite_name}", confirm_msg):
-            # Store removal result and trigger navigation
-            self._removal_result = {
-                'mode': 'remove_bundle',
-                'suite_name': suite_name,
-                'installed_apps': self.bundle_info["installed_app_ids"],
-                'app_names': self.bundle_info["installed_app_names"]
-            }
-            
-            # We'll return this in on_next() - the main window will handle the navigation
-            print("DEBUG: Bundle removal confirmed, will be processed in on_next()")
-    
-    def create_app_selection_area(self):
+    def create_app_selection_area(self, layout):
         """Create the main app selection area organized by categories"""
+        # Create scroll area
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        
+        # Content widget for scroll area
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setContentsMargins(10, 10, 10, 10)
+        content_layout.setSpacing(15)
+        
         # Get apps organized by category
         apps_by_category = self.app_parser.get_apps_by_category()
         
         for category, apps in apps_by_category.items():
-            self.create_category_section(category, apps)
+            self.create_category_section(content_layout, category, apps)
         
-        # Update selection count initially
-        self.update_selection_count()
+        # Add stretch at the end
+        content_layout.addStretch()
+        
+        scroll_area.setWidget(content_widget)
+        layout.addWidget(scroll_area, 1)  # Give it stretch priority
     
-    def create_category_section(self, category_name, apps):
+    def create_category_section(self, layout, category_name, apps):
         """Create a section for a specific category"""
-        # Category frame with border
-        category_frame = ttk.LabelFrame(self.content_frame, text=category_name, padding=10)
-        category_frame.pack(fill="x", pady=(0, 15), padx=10)
+        # Category group box
+        category_box = QGroupBox(category_name)
+        category_layout = QVBoxLayout(category_box)
+        category_layout.setSpacing(8)
         
         # Create app entries for this category
         for app in apps:
-            self.create_app_entry(category_frame, app)
+            self.create_app_entry(category_layout, app)
+        
+        layout.addWidget(category_box)
     
-    def create_app_entry(self, parent, app):
-        """Create a single app entry with icon, checkbox and info"""
+    def create_app_entry(self, layout, app):
+        """Create a single app entry widget"""
         app_id = app.get('id')
-        
-        # Main app frame
-        app_frame = ttk.Frame(parent)
-        app_frame.pack(fill="x", pady=8, padx=5)
-        
-        # Checkbox variable
-        var = tk.BooleanVar()
-        
-        # Determine checkbox state based on current installation
         is_currently_installed = app_id in self.currently_installed
         
-        if is_currently_installed:
-            # If currently installed by bundle, always check
-            var.set(True)
-        else:
-            # If not installed, use default selection
-            var.set(app.get('default_selected', False))
+        # Create app entry widget
+        app_widget = AppEntryWidget(app, is_currently_installed, self.config)
         
-        # Store the variable
-        self.app_checkboxes[app_id] = var
+        # Connect checkbox change
+        app_widget.checkbox.stateChanged.connect(self.on_selection_changed)
         
-        # Left side: checkbox
-        checkbox = ttk.Checkbutton(
-            app_frame, 
-            variable=var,
-            command=self.on_selection_changed
-        )
-        checkbox.pack(side="left", padx=(0, 10))
+        # Store the widget
+        self.app_widgets[app_id] = app_widget
         
-        # Icon (next to checkbox)
-        icon_label = ttk.Label(app_frame)
-        icon_label.pack(side="left", padx=(0, 10))
-        
-        # Load and set icon
-        try:
-            icon_photo = self.load_app_icon(app_id)
-            icon_label.configure(image=icon_photo)
-            icon_label.image = icon_photo  # Keep a reference to prevent garbage collection
-        except Exception as e:
-            print(f"Warning: Could not set icon for {app_id}: {e}")
-        
-        # App info frame (takes remaining space)
-        info_frame = ttk.Frame(app_frame)
-        info_frame.pack(side="left", fill="x", expand=True)
-        
-        # App name (bold)
-        name_label = ttk.Label(
-            info_frame, 
-            text=app.get('name', 'Unknown'), 
-            font=('Arial', 11, 'bold')
-        )
-        name_label.pack(anchor="w")
-        
-        # App description
-        description = app.get('description', '')
-        if description:
-            desc_label = ttk.Label(
-                info_frame, 
-                text=description, 
-                foreground='gray',
-                font=('Arial', 9)
-            )
-            desc_label.pack(anchor="w")
-        
-        # Adobe equivalent (if available)
-        adobe_equiv = app.get('adobe_equivalent', '')
-        if adobe_equiv:
-            equiv_text = f"Alternative to: {adobe_equiv}"
-            equiv_label = ttk.Label(
-                info_frame, 
-                text=equiv_text, 
-                foreground='#0066cc', 
-                font=('Arial', 9, 'italic')
-            )
-            equiv_label.pack(anchor="w")
-        
-        # Status indicators
-        if is_currently_installed:
-            status_label = ttk.Label(
-                info_frame, 
-                text="[CURRENTLY IN BUNDLE]", 
-                foreground='green', 
-                font=('Arial', 8, 'bold')
-            )
-            status_label.pack(anchor="w")
-
-        # Show availability status
-        if app_id in self.bundle_info.get("availability_info", {}):
-            availability = self.bundle_info["availability_info"][app_id]
-            if availability and not availability.is_available:
-                status_label = ttk.Label(
-                    info_frame, 
-                    text="[ORPHANED - APP REMOVED]", 
-                    foreground='red', 
-                    font=('Arial', 8, 'bold')
-                )
-                status_label.pack(anchor="w")
-        
-        # Required indicator (if any apps are still marked required)
-        if app.get('required', False):
-            req_label = ttk.Label(
-                info_frame, 
-                text="[RECOMMENDED]", 
-                foreground='blue', 
-                font=('Arial', 8, 'bold')
-            )
-            req_label.pack(anchor="w")
-        
-        # Store widget references
-        self.app_widgets[app_id] = {
-            'frame': app_frame,
-            'checkbox': checkbox,
-            'variable': var,
-            'app_data': app,
-            'icon_label': icon_label,
-            'currently_installed': is_currently_installed
-        }
+        layout.addWidget(app_widget)
     
-    def create_summary_area(self):
+    def create_summary_area(self, layout):
         """Create summary area showing what will be installed/changed"""
-        # Get suite name for dynamic text
         suite_info = self.app_parser.get_suite_info()
         suite_name = suite_info.get('name', 'Application Bundle')
         
@@ -495,43 +391,48 @@ Continue with {suite_name} removal?"""
         else:
             summary_title = f"{suite_name} Installation Summary"
         
-        summary_frame = ttk.LabelFrame(
-            self.content_frame, 
-            text=summary_title, 
-            padding=10
-        )
-        summary_frame.pack(fill="x", pady=15, padx=10)
+        summary_box = QGroupBox(summary_title)
+        summary_layout = QVBoxLayout(summary_box)
         
-        self.summary_text = tk.Text(summary_frame, height=4, wrap=tk.WORD, state='disabled')
-        self.summary_text.pack(fill="x")
+        self.summary_text = QTextEdit()
+        self.summary_text.setFixedHeight(100)
+        self.summary_text.setReadOnly(True)
+        self.summary_text.setStyleSheet("""
+            QTextEdit {
+                background-color: #f8f9fa;
+                border: 1px solid #e9ecef;
+                border-radius: 4px;
+                padding: 8px;
+                font-size: 10px;
+            }
+        """)
+        summary_layout.addWidget(self.summary_text)
         
-        # Update summary initially
-        self.update_summary()
+        layout.addWidget(summary_box)
     
     def select_all(self):
         """Select all applications"""
-        for app_id, var in self.app_checkboxes.items():
-            var.set(True)
+        for app_widget in self.app_widgets.values():
+            app_widget.set_checked(True)
         self.on_selection_changed()
     
     def select_none(self):
         """Deselect all applications"""
-        for app_id, var in self.app_checkboxes.items():
-            var.set(False)
+        for app_widget in self.app_widgets.values():
+            app_widget.set_checked(False)
         self.on_selection_changed()
     
     def select_recommended(self):
         """Select recommended applications and currently installed"""
-        for app_id, var in self.app_checkboxes.items():
-            widget_info = self.app_widgets[app_id]
-            app_data = widget_info['app_data']
-            is_currently_installed = widget_info['currently_installed']
+        for app_id, app_widget in self.app_widgets.items():
+            app_data = app_widget.app_data
+            is_currently_installed = app_widget.is_currently_installed
             
             # Select if recommended OR currently installed
             if app_data.get('default_selected', False) or is_currently_installed:
-                var.set(True)
+                app_widget.set_checked(True)
             else:
-                var.set(False)
+                app_widget.set_checked(False)
         self.on_selection_changed()
     
     def on_selection_changed(self):
@@ -541,10 +442,10 @@ Continue with {suite_name} removal?"""
     
     def update_selection_count(self):
         """Update the selection count label"""
-        selected_count = sum(1 for var in self.app_checkboxes.values() if var.get())
-        total_count = len(self.app_checkboxes)
+        selected_count = sum(1 for widget in self.app_widgets.values() if widget.is_checked())
+        total_count = len(self.app_widgets)
         
-        self.selection_count_label.config(text=f"Selected: {selected_count}/{total_count}")
+        self.selection_count_label.setText(f"Selected: {selected_count}/{total_count}")
     
     def update_summary(self):
         """Update the installation/changes summary"""
@@ -593,21 +494,65 @@ Continue with {suite_name} removal?"""
                 summary_text = "\n".join(summary_lines)
         
         # Update text widget
-        self.summary_text.configure(state='normal')
-        self.summary_text.delete(1.0, tk.END)
-        self.summary_text.insert(1.0, summary_text)
-        self.summary_text.configure(state='disabled')
+        self.summary_text.setPlainText(summary_text)
     
     def get_selected_apps(self):
         """Get list of selected applications"""
         selected_apps = []
         
-        for app_id, var in self.app_checkboxes.items():
-            if var.get():
-                app_data = self.app_widgets[app_id]['app_data']
-                selected_apps.append(app_data)
+        for app_id, app_widget in self.app_widgets.items():
+            if app_widget.is_checked():
+                selected_apps.append(app_widget.app_data)
         
         return selected_apps
+    
+    def confirm_remove_bundle(self):
+        """Confirm and initiate complete bundle removal"""
+        suite_info = self.app_parser.get_suite_info()
+        suite_name = suite_info.get('name', 'Application Bundle')
+        
+        # Get list of currently installed apps for confirmation
+        app_names = self.bundle_info["installed_app_names"]
+        
+        # Show detailed confirmation
+        confirm_msg = f"""Remove {suite_name} Completely?
+
+This will remove:
+✓ All {suite_name} menu entries and icons
+✓ {suite_name} category from application menu
+
+✗ Applications remain installed:"""
+        
+        for app_name in app_names[:6]:
+            confirm_msg += f"\n  • {app_name}"
+        
+        if len(app_names) > 6:
+            confirm_msg += f"\n  • ... and {len(app_names) - 6} more"
+        
+        confirm_msg += f"""
+
+The applications will be available in their original menu locations.
+
+Continue with {suite_name} removal?"""
+        
+        reply = QMessageBox.question(
+            self.parent, 
+            f"Remove {suite_name}", 
+            confirm_msg,
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            # Store removal result and trigger navigation
+            self._removal_result = {
+                'mode': 'remove_bundle',
+                'suite_name': suite_name,
+                'installed_apps': self.bundle_info["installed_app_ids"],
+                'app_names': self.bundle_info["installed_app_names"]
+            }
+            
+            print("DEBUG: Bundle removal confirmed, will be processed in on_next()")
     
     def validate_selection(self):
         """Validate that selection is acceptable"""
@@ -619,14 +564,16 @@ Continue with {suite_name} removal?"""
             # Check if this is removing everything from an existing bundle
             if self.bundle_info["is_installed"]:
                 # Instead of asking here, suggest using the Remove Bundle button
-                messagebox.showinfo(
+                QMessageBox.information(
+                    self.parent,
                     "Remove All Applications",
                     f"To completely remove {suite_name}, use the '🗑 Remove Bundle' button.\n\n"
                     "This will remove all menu entries while keeping the applications installed."
                 )
                 return False
             else:
-                messagebox.showwarning(
+                QMessageBox.warning(
+                    self.parent,
                     "No Selection", 
                     f"Please select at least one {suite_name.lower()} application to install."
                 )
@@ -637,9 +584,9 @@ Continue with {suite_name} removal?"""
     def on_next(self):
         """Called when Install/Apply button is clicked"""
         # Check if we're in bundle removal mode (button was clicked)
-        if hasattr(self, '_removal_result'):
+        if self._removal_result:
             result = self._removal_result
-            delattr(self, '_removal_result')  # Clean up
+            self._removal_result = None  # Clean up
             print("DEBUG: Returning removal result from on_next()")
             return result
         
@@ -654,7 +601,11 @@ Continue with {suite_name} removal?"""
             changes = self.state_detector.get_installation_changes(selected_ids)
             
             if not changes["has_changes"] and selected_apps:
-                messagebox.showinfo("No Changes", "Selection matches current installation - no changes needed.")
+                QMessageBox.information(
+                    self.parent, 
+                    "No Changes", 
+                    "Selection matches current installation - no changes needed."
+                )
                 return None
             
             # Return modification data
@@ -678,7 +629,15 @@ Continue with {suite_name} removal?"""
             
             confirm_msg += "\n\nProceed with installation?"
             
-            if messagebox.askyesno("Confirm Installation", confirm_msg):
+            reply = QMessageBox.question(
+                self.parent,
+                "Confirm Installation", 
+                confirm_msg,
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.Yes
+            )
+            
+            if reply == QMessageBox.Yes:
                 return {
                     'mode': 'install',
                     'selected_apps': selected_apps

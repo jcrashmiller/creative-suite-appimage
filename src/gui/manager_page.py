@@ -1,39 +1,18 @@
 #!/usr/bin/env python3
 """
-Linux Bundle Installer - Application Selection GUI
+Linux Bundle Installer - Manager Page (PySide2 Version)
 Copyright (c) 2025 Loading Screen Solutions
-https://github.com/LoadingScreenSolutions/linux-bundle-installer
 
-This file is part of Linux Bundle Installer.
-
-Linux Bundle Installer is free software: you can redistribute it and/or modify
-it under the terms of the MIT License.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Licensed under the MIT License. See LICENSE file for details.
 
 Author: James T. Miller
 Created: 2025-06-01
+Ported to PySide2: 2025-07-12
 """
 
-"""Manager page placeholder"""
-import tkinter as tk
-from tkinter import ttk
+from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel
+from PySide2.QtCore import Qt
+from PySide2.QtGui import QFont
 from gui.base_page import BasePage
 
 class ManagerPage(BasePage):
@@ -42,22 +21,78 @@ class ManagerPage(BasePage):
         super().__init__(parent, config)
     
     def setup_ui(self):
-        title = ttk.Label(self.parent, text="Manage Applications", style='Title.TLabel')
-        title.pack(pady=20)
+        # Main layout
+        layout = QVBoxLayout(self.parent)
+        layout.setContentsMargins(40, 20, 40, 20)
+        layout.setSpacing(20)
         
-        # Add company branding
-        branding = ttk.Label(
-            self.parent,
-            text="Loading Screen Solutions - Empowering you to use your tech, your way",
-            font=('Arial', 10, 'italic'),
-            foreground='gray'
-        )
-        branding.pack(pady=(0, 20))
+        # Title
+        title = QLabel("Manage Applications")
+        title_font = QFont()
+        title_font.setPointSize(18)
+        title_font.setBold(True)
+        title.setFont(title_font)
+        title.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title)
         
-        # Future management features go here
-        placeholder = ttk.Label(
-            self.parent, 
-            text="Application management features coming soon...",
-            justify='center'
+        # Company branding
+        branding = QLabel("Loading Screen Solutions - Empowering you to use your tech, your way")
+        branding.setAlignment(Qt.AlignCenter)
+        branding.setStyleSheet("""
+            QLabel {
+                color: #666666;
+                font-size: 10px;
+                font-style: italic;
+                margin-bottom: 20px;
+            }
+        """)
+        layout.addWidget(branding)
+        
+        # Main content area
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setContentsMargins(20, 20, 20, 20)
+        
+        # Future management features placeholder
+        placeholder = QLabel("Application management features coming soon...")
+        placeholder.setAlignment(Qt.AlignCenter)
+        placeholder.setWordWrap(True)
+        placeholder.setStyleSheet("""
+            QLabel {
+                font-size: 12px;
+                color: #999999;
+                background-color: #f8f9fa;
+                border: 2px dashed #dddddd;
+                border-radius: 8px;
+                padding: 40px;
+                margin: 20px;
+            }
+        """)
+        content_layout.addWidget(placeholder)
+        
+        # Add some spacing
+        content_layout.addStretch()
+        
+        layout.addWidget(content_widget, 1)  # Give it stretch priority
+        
+        # Success message area (if needed later)
+        success_info = QLabel(
+            "Installation completed successfully!\n\n"
+            "Your selected applications have been installed and are now available "
+            "in your application menu under the Creative Suite category.\n\n"
+            "You can close this installer and start using your new applications."
         )
-        placeholder.pack(expand=True)
+        success_info.setWordWrap(True)
+        success_info.setAlignment(Qt.AlignCenter)
+        success_info.setStyleSheet("""
+            QLabel {
+                background-color: #d4edda;
+                color: #155724;
+                border: 1px solid #c3e6cb;
+                border-radius: 6px;
+                padding: 15px;
+                font-size: 11px;
+                line-height: 1.4;
+            }
+        """)
+        layout.addWidget(success_info)

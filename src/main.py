@@ -29,6 +29,7 @@ SOFTWARE.
 
 Author: James T. Miller
 Created: 2025-06-01
+Ported to PySide2: 2025-07-12
 """
 """
 Linux Creative Suite Installer
@@ -37,14 +38,17 @@ Entry point for the GUI application
 
 import sys
 import os
-import tkinter as tk
-from tkinter import messagebox
 import traceback
 
 # Add src directory to Python path for imports
 src_dir = os.path.dirname(os.path.abspath(__file__))
 if src_dir not in sys.path:
     sys.path.insert(0, src_dir)
+
+# PySide2 imports
+from PySide2.QtWidgets import QApplication, QMessageBox
+from PySide2.QtCore import Qt
+from PySide2.QtGui import QIcon
 
 # Now we can use absolute imports
 from gui.main_window import MainWindow
@@ -54,20 +58,44 @@ def check_requirements():
     """Check if we're running with appropriate permissions and dependencies"""
     # Check if we're running as root (we shouldn't be)
     if os.geteuid() == 0:
-        messagebox.showerror(
+        QMessageBox.critical(
+            None,
             "Error", 
             "Please do not run this installer as root.\n"
             "The installer will request sudo permissions when needed."
         )
         return False
     
-    # Check if we have a desktop environment
+    # Check if we have a display environment
     if not os.environ.get('DISPLAY') and not os.environ.get('WAYLAND_DISPLAY'):
         print("Error: No display environment detected.")
         print("This installer requires a graphical desktop environment.")
         return False
     
     return True
+
+def setup_application():
+    """Set up the QApplication with proper settings"""
+    # Enable high DPI support
+    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+    QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+    
+    # Create the application
+    app = QApplication(sys.argv)
+    app.setApplicationName("Linux Creative Suite Installer")
+    app.setApplicationVersion("1.0")
+    app.setOrganizationName("Loading Screen Solutions")
+    
+    # Set application icon if available
+    try:
+        from pathlib import Path
+        icon_path = Path(__file__).parent.parent / "assets" / "icons" / "suite-icons" / "lss-logo.png"
+        if icon_path.exists():
+            app.setWindowIcon(QIcon(str(icon_path)))
+    except Exception as e:
+        print(f"Warning: Could not set application icon: {e}")
+    
+    return app
 
 def main():
     """Main application entry point"""
@@ -79,25 +107,15 @@ def main():
         # Initialize configuration
         config = Config()
         
-        # Create the main tkinter window
-        root = tk.Tk()
+        # Set up the Qt application
+        app = setup_application()
         
-        # Set some basic window properties
-        root.title("Linux Creative Suite Installer")
-        root.geometry("800x600")
-        root.resizable(True, True)
+        # Create and show the main window
+        main_window = MainWindow(config)
+        main_window.show()
         
-        # Center the window on screen
-        root.update_idletasks()
-        x = (root.winfo_screenwidth() // 2) - (800 // 2)
-        y = (root.winfo_screenheight() // 2) - (600 // 2)
-        root.geometry(f"800x600+{x}+{y}")
-        
-        # Create and start the main application
-        app = MainWindow(root, config)
-        
-        # Start the GUI event loop
-        root.mainloop()
+        # Start the event loop
+        return app.exec_()
         
     except KeyboardInterrupt:
         print("\nInstaller interrupted by user")
@@ -107,7 +125,10 @@ def main():
         error_msg = f"An unexpected error occurred:\n\n{str(e)}\n\nTraceback:\n{traceback.format_exc()}"
         
         try:
-            messagebox.showerror("Fatal Error", error_msg)
+            # Try to create a minimal QApplication for the error dialog
+            if not QApplication.instance():
+                error_app = QApplication(sys.argv)
+            QMessageBox.critical(None, "Fatal Error", error_msg)
         except:
             # If GUI fails, print to console
             print("FATAL ERROR:")
