@@ -2,7 +2,7 @@ This is an AppImage of the Linux Creative Suite AppPack installer. It offers alt
 
 The following applications are available to be installed by the distribution's native package manager or flatpack as a fallback.
 
-* GIMP
+* GIMP - Alternative to Photoshop
 * Inkscape
 * Kdenlive
 * Blender
