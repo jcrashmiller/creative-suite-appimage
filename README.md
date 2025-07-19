@@ -5,9 +5,11 @@ An AppImage installer that provides a curated collection of open-source alternat
 ## Screenshots
 
 ![Linux Creative Suite Installer](assets/images/screenshots/installer.png)
+
 *The installer interface showing available applications*
 
 ![Installed Applications Menu](assets/images/screenshots/app_list.png)
+
 *Applications organized in your desktop menu with custom icons*
 
 ## Features
