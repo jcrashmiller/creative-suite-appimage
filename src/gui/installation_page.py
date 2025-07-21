@@ -622,28 +622,42 @@ class InstallationPage(BasePage):
         successful = results.get("successful_installs", [])
         failed = results.get("failed_installs", [])
         
+        suite_info = self.app_parser.get_suite_info()
+        suite_name = suite_info.get('name', 'Application Bundle')
+        
         if success and successful and not failed:
-            self.overall_status.setText("🎉 Linux Creative Suite installed successfully!")
+            self.overall_status.setText(f"🎉 {suite_name} installed successfully!")
             self.log_message("Installation complete! Applications installed successfully.", "success")
-            self.complete_button.setText("Continue to Manager →")
+            self.log_message(f"You can now find them in your application menu under '{suite_name}'", "info")
         elif successful and failed:
-            self.overall_status.setText("⚠ Linux Creative Suite partially installed")
+            self.overall_status.setText(f"⚠ {suite_name} partially installed")
             self.log_message(f"Partial installation: {len(successful)} successful, {len(failed)} failed.", "warning")
-            self.complete_button.setText("Continue to Manager →")
         else:
             self.overall_status.setText("❌ Installation failed")
             self.log_message("Installation failed - no applications were installed.", "error")
-            self.complete_button.setText("Back to Selection →")
+        
+        # Fix: Always show correct button text for modification mode
+        if self.mode == 'remove_bundle':
+            self.complete_button.setText("Exit")
+        else:
+            self.complete_button.setText("Continue Modifying →")
         
         self.complete_button.setEnabled(True)
         self.update_app_progress("Installation Complete", "Ready to continue", False)
-    
+        
+        # Update main window status properly
+        self._update_main_window_status("Complete")
+        
     def show_modification_complete(self, success, results):
         """Show modification completion status"""
         successful_adds = results.get("successful_adds", [])
         failed_adds = results.get("failed_adds", [])
         removed_apps = results.get("removed_apps", [])
         
+        suite_info = self.app_parser.get_suite_info()
+        suite_name = suite_info.get('name', 'Application Bundle')
+        
+        # Build status message
         status_parts = []
         if removed_apps:
             status_parts.append(f"Removed {len(removed_apps)} apps")
@@ -653,13 +667,27 @@ class InstallationPage(BasePage):
             status_parts.append(f"Failed to add {len(failed_adds)} apps")
         
         if status_parts:
-            self.overall_status.setText(f"✓ Linux Creative Suite modified: " + ", ".join(status_parts))
+            status_message = f"✓ {suite_name} modified: " + ", ".join(status_parts)
         else:
-            self.overall_status.setText("✓ Linux Creative Suite modification complete")
+            status_message = f"✓ {suite_name} modification complete"
         
+        self.overall_status.setText(status_message)
+        
+        # Log details
+        if removed_apps:
+            self.log_message(f"Removed from bundle: {', '.join(removed_apps)}", "info")
+        if successful_adds:
+            self.log_message(f"Added to bundle: {', '.join(successful_adds)}", "success")
+        if failed_adds:
+            self.log_message(f"Failed to add: {', '.join(failed_adds)}", "error")
+        
+        # Set correct button
         self.complete_button.setText("Continue Modifying →")
         self.complete_button.setEnabled(True)
         self.update_app_progress("Modification Complete", "Ready to continue", False)
+        
+        # Update main window status
+        self._update_main_window_status("Complete")
     
     def show_bundle_removal_complete(self, success, results):
         """Show bundle removal completion status"""
@@ -673,13 +701,12 @@ class InstallationPage(BasePage):
             error = results.get("error", "Unknown error")
             self.log_message(f"Bundle removal failed: {error}", "error")
         
-        self.complete_button.setText("Close")
+        self.complete_button.setText("Exit")
         self.complete_button.setEnabled(True)
         self.update_app_progress("Removal Complete", "Ready to close", False)
         
-        # Auto-close after 2 seconds for successful removal
-        if success:
-            QTimer.singleShot(2000, self.on_installation_complete)
+        # Update main window status
+        self._update_main_window_status("Complete")
     
     def show_installation_failed(self, error_message):
         """Show installation failure"""
@@ -701,30 +728,52 @@ class InstallationPage(BasePage):
     
     def on_installation_complete(self):
         """Handle completion button click"""
+        print("DEBUG: Installation completion button clicked")
+        
         if self.mode == 'remove_bundle':
             # Close the application after bundle removal
+            print("DEBUG: Closing application after bundle removal")
             import sys
             sys.exit(0)
-        elif self.mode == 'modify':
-            # Return to selection page for further modifications
-            if self.main_window and hasattr(self.main_window, 'show_selection_page'):
-                self.main_window.show_selection_page(success_message="Linux Creative Suite modified successfully")
-    def on_installation_complete(self):
-        """Handle completion button click"""
-        if self.mode == 'remove_bundle':
-            # Close the application after bundle removal
-            import sys
-            sys.exit(0)
-        elif self.mode == 'modify':
-            # Return to selection page for further modifications
-            if self.main_window and hasattr(self.main_window, 'show_selection_page'):
-                self.main_window.show_selection_page(success_message="Linux Creative Suite modified successfully")
         else:
-            # Go to manager page
-            if self.on_complete:
-                self.on_complete()
-            elif self.main_window and hasattr(self.main_window, 'show_manager_page'):
-                self.main_window.show_manager_page()
+            # Return to selection page for further modifications
+            print("DEBUG: Returning to selection page for modifications")
+            
+            # Find the main window more reliably
+            # In PySide2, we need to traverse the widget hierarchy differently
+            main_window = None
+            
+            # Try to find MainWindow through parent chain
+            current_widget = self.parent
+            search_depth = 0
+            while current_widget and search_depth < 10:
+                if hasattr(current_widget, 'show_selection_page'):
+                    main_window = current_widget
+                    break
+                # Try different parent attributes for PySide2
+                current_widget = getattr(current_widget, 'parent', None)
+                if callable(current_widget):
+                    current_widget = current_widget()
+                search_depth += 1
+            
+            if main_window:
+                print("DEBUG: Found main window, calling show_selection_page")
+                success_message = "Linux Creative Suite modified successfully" if self.mode == 'modify' else "Linux Creative Suite installed successfully"
+                main_window.show_selection_page(success_message=success_message)
+            else:
+                print("DEBUG: Could not find main window - trying QApplication approach")
+                # Fallback: Find MainWindow through QApplication
+                from PySide2.QtWidgets import QApplication
+                app = QApplication.instance()
+                if app:
+                    for widget in app.allWidgets():
+                        if hasattr(widget, 'show_selection_page') and hasattr(widget, 'setWindowTitle'):
+                            print("DEBUG: Found MainWindow via QApplication")
+                            success_message = "Linux Creative Suite modified successfully" if self.mode == 'modify' else "Linux Creative Suite installed successfully"
+                            widget.show_selection_page(success_message=success_message)
+                            return
+                
+                print("ERROR: Could not find main window to navigate back")
     
     def on_next(self):
         """Called when next/continue button is clicked"""

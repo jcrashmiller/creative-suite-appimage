@@ -232,11 +232,10 @@ class MainWindow(QMainWindow):
             self.status_label.setText(status_text)
             print(f"DEBUG: Main window status updated to: {status_text}")
             
-            # Enable navigation buttons when complete
+            # Don't automatically enable main window navigation buttons
+            # Let the installation page handle its own button states
             if status_text in ["Complete", "Failed", "Bundle Removal Complete"]:
-                self.next_button.setEnabled(True)
-                self.back_button.setEnabled(True)
-                print(f"DEBUG: Navigation buttons enabled")
+                print(f"DEBUG: Installation page managing its own buttons")
             
         except Exception as e:
             print(f"ERROR: Failed to update status: {e}")
