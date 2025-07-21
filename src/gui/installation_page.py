@@ -170,34 +170,61 @@ class InstallationWorker(QObject):
                 if app_data:
                     apps_to_install.append(app_data)
             
-            # Install new packages
-            for i, app in enumerate(apps_to_install):
+        # Install new apps if any
+        if apps_to_add:
+            # Get full app data for apps to add
+            apps_to_install = []
+            for app_id in apps_to_add:
+                app_data = self.app_parser.get_app_by_id(app_id)
+                if app_data:
+                    apps_to_install.append(app_data)
+            
+            if apps_to_install:
                 self.current_step += 1
-                app_name = app.get('name', app.get('id', 'Unknown'))
-                
-                self.progress_updated.emit(self.current_step, self.total_steps, f"Installing new applications ({i+1}/{len(apps_to_install)})...")
-                self.app_progress_updated.emit(app_name, "Installing...", True)
-                self.log_message.emit(f"Installing {app_name}...", "info")
+                self.progress_updated.emit(self.current_step, self.total_steps, f"Installing {len(apps_to_install)} new applications...")
+                self.app_progress_updated.emit("Batch Installation", "Installing packages...", True)
+                self.log_message.emit(f"Installing {len(apps_to_install)} new applications using batch method...", "info")
                 
                 try:
-                    success, message, method = self.package_manager.install_app(app, self.app_parser)
+                    # Use batch installation method
+                    results = self.package_manager.install_apps_batch(apps_to_install, self.app_parser)
                     
-                    if success:
-                        self.log_message.emit(f"✓ {app_name} installed successfully via {method}", "success")
-                        successful_adds.append(app_name)
-                    else:
-                        self.log_message.emit(f"✗ {app_name} installation failed: {message}", "error")
-                        failed_adds.append(app_name)
-                        self.installation_errors.append(f"{app_name}: {message}")
+                    successful_adds = results['successful_installs']
+                    failed_adds = results['failed_installs']
                     
-                    self.app_progress_updated.emit(app_name, "Complete", False)
+                    # Log detailed results
+                    if successful_adds:
+                        self.log_message.emit(f"✓ Successfully installed {len(successful_adds)} applications:", "success")
+                        for app_name in successful_adds:
+                            # Find the method used for this app
+                            method = "unknown"
+                            for app_id, details in results['installation_details'].items():
+                                if details.get('success') and self.app_parser.get_app_field(app_id, 'name') == app_name:
+                                    method = details.get('method', 'unknown')
+                                    break
+                            self.log_message.emit(f"  • {app_name} via {method}", "success")
+                    
+                    if failed_adds:
+                        self.log_message.emit(f"✗ Failed to install {len(failed_adds)} applications:", "error")
+                        for app_name in failed_adds:
+                            # Find the error message for this app
+                            error_msg = "Unknown error"
+                            for app_id, details in results['installation_details'].items():
+                                if not details.get('success') and self.app_parser.get_app_field(app_id, 'name') == app_name:
+                                    error_msg = details.get('message', 'Unknown error')
+                                    break
+                            self.log_message.emit(f"  • {app_name}: {error_msg}", "error")
+                            self.installation_errors.append(f"{app_name}: {error_msg}")
+                    
+                    self.app_progress_updated.emit("Batch Installation", "Complete", False)
                     
                 except Exception as e:
-                    error_msg = f"Unexpected error installing {app_name}: {str(e)}"
+                    error_msg = f"Unexpected error during batch installation: {str(e)}"
                     self.log_message.emit(f"✗ {error_msg}", "error")
-                    failed_adds.append(app_name)
+                    failed_adds = [app.get('name', app.get('id', 'Unknown')) for app in apps_to_install]
+                    successful_adds = []
                     self.installation_errors.append(error_msg)
-                    self.app_progress_updated.emit(app_name, "Error", False)
+                    self.app_progress_updated.emit("Batch Installation", "Error", False)
             
             # Install desktop integration for new apps
             if successful_adds:
@@ -275,43 +302,43 @@ class InstallationWorker(QObject):
             self.status_update.emit("Failed")
     
     def install_packages_step(self):
-        """Install the selected applications"""
-        successful_installs = []
-        failed_installs = []
+        """Install the selected applications using batch method"""
+        print(f"Installing {len(self.selected_apps)} applications using batch method...")
         
-        for i, app in enumerate(self.selected_apps):
-            app_id = app.get('id', 'unknown')
-            app_name = app.get('name', app_id)
-            
-            self.current_step = i + 1
-            self.progress_updated.emit(self.current_step, self.total_steps, f"Installing applications ({self.current_step}/{len(self.selected_apps)})...")
-            self.app_progress_updated.emit(app_name, "Installing...", True)
-            self.log_message.emit(f"Installing {app_name}...", "info")
-            
-            try:
-                success, message, method = self.package_manager.install_app(app, self.app_parser)
-                
-                if success:
-                    self.log_message.emit(f"✓ {app_name} installed successfully via {method}", "success")
-                    successful_installs.append(app_name)
-                    self.installation_results[app_id] = {'success': True, 'method': method, 'message': message}
-                else:
-                    self.log_message.emit(f"✗ {app_name} installation failed: {message}", "error")
-                    failed_installs.append(app_name)
-                    self.installation_results[app_id] = {'success': False, 'method': 'none', 'message': message}
-                    self.installation_errors.append(f"{app_name}: {message}")
-                
-                self.app_progress_updated.emit(app_name, "Complete", False)
-                
-            except Exception as e:
-                error_msg = f"Unexpected error installing {app_name}: {str(e)}"
-                self.log_message.emit(f"✗ {error_msg}", "error")
-                failed_installs.append(app_name)
-                self.installation_errors.append(error_msg)
-                self.app_progress_updated.emit(app_name, "Error", False)
-            
-            # Small delay to make progress visible
-            time.sleep(0.1)
+        # Use the new batch installation method
+        results = self.package_manager.install_apps_batch(self.selected_apps, self.app_parser)
+        
+        successful_installs = results['successful_installs']
+        failed_installs = results['failed_installs']
+        
+        # Update installation results for desktop integration
+        self.installation_results = {}
+        for app_id, details in results['installation_details'].items():
+            self.installation_results[app_id] = details
+        
+        # Log detailed results
+        if successful_installs:
+            self.log_message(f"✓ Successfully installed {len(successful_installs)} applications:", "success")
+            for app_name in successful_installs:
+                # Find the method used for this app
+                app_id = None
+                method = "unknown"
+                for aid, details in results['installation_details'].items():
+                    if details.get('success') and self.app_parser.get_app_field(aid, 'name') == app_name:
+                        method = details.get('method', 'unknown')
+                        break
+                self.log_message(f"  • {app_name} via {method}", "success")
+        
+        if failed_installs:
+            self.log_message(f"✗ Failed to install {len(failed_installs)} applications:", "error")
+            for app_name in failed_installs:
+                # Find the error message for this app
+                error_msg = "Unknown error"
+                for app_id, details in results['installation_details'].items():
+                    if not details.get('success') and self.app_parser.get_app_field(app_id, 'name') == app_name:
+                        error_msg = details.get('message', 'Unknown error')
+                        break
+                self.log_message(f"  • {app_name}: {error_msg}", "error")
         
         return successful_installs, failed_installs
     

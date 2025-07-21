@@ -34,7 +34,7 @@ Created: 2025-06-01
 import subprocess
 import shutil
 import os
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 from pathlib import Path
 
 class PackageManager:
@@ -201,9 +201,9 @@ class PackageManager:
             if self.detected_manager == 'apt':
                 # Update package list first (quietly)
                 if use_sudo:
-                    update_cmd = ['pkexec', 'apt', 'update', '-qq']
+                    update_cmd = ['pkexec', 'apt-get', 'update', '-qq']
                 else:
-                    update_cmd = ['apt', 'update', '-qq']
+                    update_cmd = ['apt-get', 'update', '-qq']
                 subprocess.run(update_cmd, capture_output=True, timeout=60)
                 
                 # Install packages
@@ -320,8 +320,8 @@ class PackageManager:
         Install a single app using the best available method
         Returns: (success, message, method_used)
         
-        Philosophy: Try native package manager first, then Flatpak, then Snap.
-        If app is already installed via any method, consider it successful.
+        Note: This method is now primarily for individual app installation.
+        For batch installation, use install_apps_batch() instead.
         """
         app_id = app_data.get('id', 'unknown')
         app_name = app_data.get('name', app_id)
@@ -361,6 +361,223 @@ class PackageManager:
         # All methods failed
         return False, f"All installation methods failed for {app_name}", 'none'
     
+    def install_apps_batch(self, app_list: List[Dict], json_parser) -> Dict:
+        """
+        Install multiple apps using batched commands where possible
+        
+        Args:
+            app_list: List of app dictionaries from JSON
+            json_parser: Parser for getting package information
+        
+        Returns:
+            Dict with installation results
+        """
+        results = {
+            'successful_installs': [],
+            'failed_installs': [],
+            'installation_details': {},
+            'native_manager_used': self.detected_manager
+        }
+        
+        # Separate apps by installation method
+        native_apps = []
+        flatpak_only_apps = []
+        snap_only_apps = []
+        
+        for app in app_list:
+            app_id = app.get('id', 'unknown')
+            
+            # Check if app has native packages
+            native_packages = json_parser.get_packages_for_manager(app_id, self.detected_manager)
+            if native_packages:
+                native_apps.append(app)
+            elif self.flatpak_available and json_parser.get_flatpak_id(app_id):
+                flatpak_only_apps.append(app)
+            elif self.snap_available and json_parser.get_snap_id(app_id):
+                snap_only_apps.append(app)
+            else:
+                # No installation method available
+                app_name = app.get('name', app_id)
+                results['failed_installs'].append(app_name)
+                results['installation_details'][app_id] = {
+                    'success': False,
+                    'method': 'none',
+                    'message': f'No installation method available for {app_name}'
+                }
+        
+        print(f"Batch installation plan:")
+        print(f"  Native ({self.detected_manager}): {len(native_apps)} apps")
+        print(f"  Flatpak only: {len(flatpak_only_apps)} apps")
+        print(f"  Snap only: {len(snap_only_apps)} apps")
+        
+        # Step 1: Batch install native packages
+        if native_apps:
+            native_results = self._batch_install_native(native_apps, json_parser)
+            results['successful_installs'].extend(native_results['successful'])
+            results['failed_installs'].extend(native_results['failed'])
+            results['installation_details'].update(native_results['details'])
+            
+            # Try flatpak fallback for failed native installs
+            failed_native_apps = [app for app in native_apps if app.get('name', app.get('id')) in native_results['failed']]
+            if failed_native_apps:
+                flatpak_fallback_results = self._install_flatpak_fallbacks(failed_native_apps, json_parser)
+                # Update results with successful fallbacks
+                for app_id, result in flatpak_fallback_results.items():
+                    if result['success']:
+                        app_name = result['app_name']
+                        if app_name in results['failed_installs']:
+                            results['failed_installs'].remove(app_name)
+                        results['successful_installs'].append(app_name)
+                        results['installation_details'][app_id] = result
+        
+        # Step 2: Install flatpak-only apps
+        if flatpak_only_apps:
+            for app in flatpak_only_apps:
+                app_id = app.get('id', 'unknown')
+                app_name = app.get('name', app_id)
+                flatpak_id = json_parser.get_flatpak_id(app_id)
+                
+                print(f"Installing {app_name} via Flatpak: {flatpak_id}")
+                success, message = self.install_flatpak_app(flatpak_id)
+                
+                if success:
+                    results['successful_installs'].append(app_name)
+                    results['installation_details'][app_id] = {
+                        'success': True,
+                        'method': 'flatpak',
+                        'message': message
+                    }
+                else:
+                    results['failed_installs'].append(app_name)
+                    results['installation_details'][app_id] = {
+                        'success': False,
+                        'method': 'flatpak',
+                        'message': message
+                    }
+        
+        # Step 3: Install snap-only apps
+        if snap_only_apps:
+            for app in snap_only_apps:
+                app_id = app.get('id', 'unknown')
+                app_name = app.get('name', app_id)
+                snap_name = json_parser.get_snap_id(app_id)
+                
+                print(f"Installing {app_name} via Snap: {snap_name}")
+                success, message = self.install_snap_app(snap_name)
+                
+                if success:
+                    results['successful_installs'].append(app_name)
+                    results['installation_details'][app_id] = {
+                        'success': True,
+                        'method': 'snap',
+                        'message': message
+                    }
+                else:
+                    results['failed_installs'].append(app_name)
+                    results['installation_details'][app_id] = {
+                        'success': False,
+                        'method': 'snap',
+                        'message': message
+                    }
+        
+        return results
+    
+    def _batch_install_native(self, app_list: List[Dict], json_parser) -> Dict:
+        """
+        Install multiple apps using a single native package manager command
+        """
+        # Collect all packages for batch installation
+        all_packages = []
+        app_package_map = {}  # Track which packages belong to which app
+        
+        for app in app_list:
+            app_id = app.get('id', 'unknown')
+            app_name = app.get('name', app_id)
+            packages = json_parser.get_packages_for_manager(app_id, self.detected_manager)
+            
+            if packages:
+                all_packages.extend(packages)
+                app_package_map[app_id] = {
+                    'packages': packages,
+                    'name': app_name
+                }
+        
+        results = {
+            'successful': [],
+            'failed': [],
+            'details': {}
+        }
+        
+        if not all_packages:
+            print("No native packages to install")
+            return results
+        
+        print(f"Batch installing {len(all_packages)} packages via {self.detected_manager}: {all_packages}")
+        
+        # Execute batch installation
+        success, message = self.install_packages(all_packages)
+        
+        if success:
+            print(f"Batch installation successful: {message}")
+            # Assume all apps installed successfully for now
+            # TODO: In Phase 3, we'll add individual package verification
+            for app_id, app_info in app_package_map.items():
+                app_name = app_info['name']
+                results['successful'].append(app_name)
+                results['details'][app_id] = {
+                    'success': True,
+                    'method': self.detected_manager,
+                    'message': f"Installed via batch {self.detected_manager} command"
+                }
+        else:
+            print(f"Batch installation failed: {message}")
+            # If batch fails, mark all as failed (we'll try flatpak fallbacks)
+            for app_id, app_info in app_package_map.items():
+                app_name = app_info['name']
+                results['failed'].append(app_name)
+                results['details'][app_id] = {
+                    'success': False,
+                    'method': self.detected_manager,
+                    'message': f"Batch installation failed: {message}"
+                }
+        
+        return results
+    
+    def _install_flatpak_fallbacks(self, failed_apps: List[Dict], json_parser) -> Dict:
+        """
+        Try to install apps via Flatpak that failed with native package manager
+        """
+        results = {}
+        
+        if not self.flatpak_available:
+            return results
+        
+        for app in failed_apps:
+            app_id = app.get('id', 'unknown')
+            app_name = app.get('name', app_id)
+            flatpak_id = json_parser.get_flatpak_id(app_id)
+            
+            if flatpak_id:
+                print(f"Trying Flatpak fallback for {app_name}: {flatpak_id}")
+                success, message = self.install_flatpak_app(flatpak_id)
+                
+                results[app_id] = {
+                    'success': success,
+                    'method': 'flatpak',
+                    'message': message,
+                    'app_name': app_name
+                }
+            else:
+                results[app_id] = {
+                    'success': False,
+                    'method': 'none',
+                    'message': f"No Flatpak alternative available for {app_name}",
+                    'app_name': app_name
+                }
+        
+        return results
+
+
     def check_sudo_access(self) -> bool:
         """Check if pkexec is available"""
         try:
