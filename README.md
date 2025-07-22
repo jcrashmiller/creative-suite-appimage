@@ -1,5 +1,7 @@
 # Linux Creative Suite
 
+*Current status - Phase 2 complete*
+
 An AppImage installer that provides a curated collection of open-source alternatives to Adobe Creative Cloud applications. Features a user-friendly GUI for selecting and installing applications, with custom icons and organized menu groupings in your Linux desktop environment.
 
 ## Screenshots
