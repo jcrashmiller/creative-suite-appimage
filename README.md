@@ -71,7 +71,7 @@ The following open-source applications are available for installation:
 
 ### Quick Start
 
-1. **Download**: Get the latest AppImage from the [Releases page](https://github.com/LoadingScreenSolutions/linux-creative-suite/releases)
+1. **Download**: AppImage -- TO BE RELEASED
 2. **Make Executable**: Right-click the downloaded file → Properties → Permissions → "Allow executing file as program" 
    
    *Or via terminal:*
