@@ -92,12 +92,12 @@ The following open-source applications are available for installation:
 
 ### Quick Start
 
-1. **Download**: Get the latest AppImage from the [Releases page](https://github.com/jcrashmiller/linux-creative-suite/releases)
+1. **Download**: Get the latest AppImage from the [Releases page](https://github.com/jcrashmiller/creative-suite-appimage/releases)
 2. **Make Executable**: Right-click the downloaded file → Properties → Permissions → "Allow executing file as program" 
    
    *Or via terminal:*
    ```bash
-   chmod +x Linux-Creative-Suite-*.AppImage
+   chmod +x creative-suite-appimage-*.AppImage
    ```
 3. **Run**: Double-click the AppImage file to launch the installer
 
@@ -177,8 +177,8 @@ sudo pacman -S python python-pip tk python-pillow
 
 ### Clone and Run
 ```bash
-git clone https://github.com/jcrashmiller/linux-creative-suite.git
-cd linux-creative-suite
+git clone https://github.com/jcrashmiller/creative-suite-appimage.git
+cd creative-suite-appimage
 python3 src/main.py
 ```
 
@@ -210,9 +210,9 @@ BundleForge will allow anyone to define their own AppPacks using simple JSON con
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/jcrashmiller/linux-creative-suite/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/jcrashmiller/linux-creative-suite/discussions)
-- **Documentation**: [Wiki](https://github.com/jcrashmiller/linux-creative-suite/wiki)
+- **Issues**: [GitHub Issues](https://github.com/jcrashmiller/creative-suite-appimage/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/jcrashmiller/creative-suite-appimage/discussions)
+- **Documentation**: [Wiki](https://github.com/jcrashmiller/creative-suite-appimage/wiki)
 
 ## Acknowledgments
 
