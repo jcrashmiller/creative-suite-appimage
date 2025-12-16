@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Linux Creative Suite
+Exec=creative-suite
+Icon=creative-suite
+Categories=Utility;Graphics;
+Terminal=false
+

@@ -1,0 +1,14 @@
+# creative-suite-opentoonz.desktop
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=OpenToonz (Creative Suite)
+GenericName=2D Animation Software
+Comment=Professional 2D animation production software
+Exec=opentoonz
+Icon=creative-suite-opentoonz
+StartupNotify=true
+NoDisplay=false
+Categories=Graphics;2DGraphics;Animation;X-Creative-Suite;
+Keywords=animation;2d;cartoon;toonz;studio;production;frame;timeline;
+MimeType=application/x-opentoonz;

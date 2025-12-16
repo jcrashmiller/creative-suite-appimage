@@ -1,0 +1,12 @@
+app:
+  name: creative-suite
+  entrypoint: src/main.py
+  icon: assets/icons/suite-icons/lss-logo.png
+
+python:
+  version: "3.12"
+
+dependencies:
+  pip:
+    - PySide6
+

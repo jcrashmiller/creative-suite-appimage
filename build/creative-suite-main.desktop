@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Linux Creative Suite
+Comment=Open source alternatives to Adobe Creative Suite
+Icon=creative-suite
+Exec=creative-suite
+Terminal=false
+Categories=AudioVideo;Graphics;Office;

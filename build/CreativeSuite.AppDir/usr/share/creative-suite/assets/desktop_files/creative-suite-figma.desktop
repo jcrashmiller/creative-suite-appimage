@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Figma (Creative Suite)
+GenericName=UI/UX Design Tool
+Comment=Collaborative interface design tool
+Exec=figma-linux
+Icon=creative-suite-figma
+StartupNotify=true
+NoDisplay=false
+Categories=Graphics;Design;X-Creative-Suite;
+Keywords=design;ui;ux;interface;prototype;figma;web;app;
+MimeType=application/x-figma;

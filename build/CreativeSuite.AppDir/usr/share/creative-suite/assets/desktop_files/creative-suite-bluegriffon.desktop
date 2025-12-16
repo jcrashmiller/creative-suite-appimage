@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=BlueGriffon (Creative Suite)
+GenericName=Web Editor
+Comment=Visual web page editor
+Icon=creative-suite-bluegriffon
+Exec=bluegriffon %U
+Terminal=false
+StartupNotify=true
+MimeType=text/html;application/xhtml+xml;text/xml;
+Categories=Development;WebDevelopment;X-Creative-Suite;
+Keywords=dreamweaver;web;html;editor;creative;suite;

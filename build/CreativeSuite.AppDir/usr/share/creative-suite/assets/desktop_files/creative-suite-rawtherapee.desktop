@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=RawTherapee (Creative Suite)
+GenericName=RAW Photo Processor
+Comment=Advanced RAW photo processing
+Icon=creative-suite-rawtherapee
+Exec=rawtherapee %U
+Terminal=false
+StartupNotify=true
+MimeType=image/x-adobe-dng;image/x-canon-cr2;image/x-canon-crw;image/x-fuji-raf;image/x-nikon-nef;image/x-olympus-orf;image/x-panasonic-raw;image/x-pentax-pef;image/x-sony-arw;image/tiff;image/jpeg;
+Categories=Graphics;Photography;X-Creative-Suite;
+Keywords=lightroom;raw;photo;processing;creative;suite;

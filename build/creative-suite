@@ -1,0 +1,3 @@
+#!/bin/sh
+exec python3 "$APPDIR/usr/share/creative-suite/src/main.py"
+

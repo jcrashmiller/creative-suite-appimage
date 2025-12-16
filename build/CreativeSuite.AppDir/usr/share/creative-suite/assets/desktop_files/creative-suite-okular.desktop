@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Okular (Creative Suite)
+GenericName=PDF Viewer and Annotator
+Comment=Universal document viewer with annotation tools
+Exec=okular
+Icon=creative-suite-okular
+StartupNotify=true
+NoDisplay=false
+Categories=Office;Viewer;Graphics;X-Creative-Suite;
+Keywords=pdf;document;viewer;annotation;ebook;reader;preview;
+MimeType=application/pdf;application/postscript;application/x-gzpostscript;application/x-pdf;application/x-bzpdf;application/x-gzpdf;image/x-eps;application/x-eps;image/x-bzeps;image/x-gzeps;application/epub+zip;application/x-mobipocket-ebook;

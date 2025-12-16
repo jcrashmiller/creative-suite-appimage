@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Linux Creative Suite
+Exec=./AppRun
+Icon=creative-suite
+Categories=Utility;Graphics;
+Terminal=false
+

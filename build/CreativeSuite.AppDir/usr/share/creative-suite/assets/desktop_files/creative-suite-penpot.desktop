@@ -1,0 +1,15 @@
+
+# creative-suite-penpot.desktop
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Penpot (Creative Suite)
+GenericName=Open Source Design Platform
+Comment=Design and prototyping platform for cross-domain teams
+Exec=penpot-desktop
+Icon=creative-suite-penpot
+StartupNotify=true
+NoDisplay=false
+Categories=Graphics;Design;Development;X-Creative-Suite;
+Keywords=design;prototype;vector;ui;ux;collaboration;web;app;open;
+MimeType=application/x-penpot;

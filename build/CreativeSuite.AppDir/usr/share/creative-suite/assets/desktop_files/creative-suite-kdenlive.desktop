@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Kdenlive (Creative Suite)
+GenericName=Video Editor
+Comment=Professional video editing and effects
+Icon=creative-suite-kdenlive
+Exec=kdenlive %i %F
+Terminal=false
+StartupNotify=true
+MimeType=application/x-kdenlive;video/mlt-playlist;application/x-kdenlivetitle;
+Categories=AudioVideo;Video;X-Creative-Suite;
+Keywords=premiere;video;editing;movie;creative;suite;
