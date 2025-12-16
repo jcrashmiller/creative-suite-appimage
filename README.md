@@ -2,7 +2,25 @@
 
 *Current status - Phase 2 complete*
 
-An AppImage installer that provides a curated collection of open-source alternatives to Adobe Creative Cloud applications. Features a user-friendly GUI for selecting and installing applications, with custom icons and organized menu groupings in your Linux desktop environment.
+An AppImage-based installer that demonstrates a role-based software provisioning model for Linux. It provides a curated collection of open-source creative applications using a user-friendly GUI, while installing software via native package managers (apt, dnf, pacman, Flatpak, etc.).
+
+The goal is to reduce onboarding friction while preserving system transparency, updateability, and user control.
+
+
+## Concept: AppPacks
+
+Linux Creative Suite is an example of what I call an **AppPack**:
+a curated, role-focused bundle of applications delivered through a single GUI, while still using the system’s native package managers.
+
+Instead of imaging entire systems or maintaining static environments, AppPacks:
+
+- Install current versions of software at install time
+- Respect existing system configurations
+- Avoid bundling or duplicating package ecosystems
+- Allow controlled software rollout without locking users out of updates
+
+This approach is designed for onboarding, shared machines, labs, and organizations where users should not require deep system knowledge or elevated privileges to get productive.
+
 
 ## Screenshots
 
@@ -65,13 +83,16 @@ The following open-source applications are available for installation:
 - **Architecture**: x86_64 (64-bit)
 - **Desktop Environment**: Any (GNOME, KDE, XFCE, etc.)
 - **Dependencies**: Modern glibc, GTK+ libraries (usually pre-installed)
-- **Permissions**: Standard user account with sudo access for package installation
+- **Permissions**: Standard user account 
+  - Sudo required only when using native system package managers 
+  - Flatpak-based AppPacks can be installed without elevated privileges
+
 
 ## Installation & Usage
 
 ### Quick Start
 
-1. **Download**: Get the latest AppImage from the [Releases page](https://github.com/LoadingScreenSolutions/linux-creative-suite/releases)
+1. **Download**: Get the latest AppImage from the [Releases page](https://github.com/jcrashmiller/linux-creative-suite/releases)
 2. **Make Executable**: Right-click the downloaded file → Properties → Permissions → "Allow executing file as program" 
    
    *Or via terminal:*
@@ -102,6 +123,18 @@ The installer guides you through a simple 3-step process:
 - **Clean Removal**: Use the "Remove Bundle" option to remove menu integration while keeping applications
 - **Individual Management**: Each application can still be managed through your system's normal package manager
 
+## Why This Approach
+
+Traditional Linux rollouts often rely on system imaging or long setup guides, both of which become outdated quickly.
+
+Linux Creative Suite explores an alternative:
+- install software *when needed*
+- document intent through metadata
+- let the system manage updates
+- make onboarding repeatable without freezing environments in time
+
+This project focuses on reducing friction without sacrificing flexibility.
+
 ### No Installation Required
 
 The installer itself is portable - no need to install anything on your system. The AppImage contains everything needed to run the installer, and you can delete it after use or keep it for future modifications to your Creative Suite bundle.
@@ -125,6 +158,7 @@ The installer itself is portable - no need to install anything on your system. T
 - **SUSE Family**: openSUSE Leap, openSUSE Tumbleweed
 - **Other**: Most modern Linux distributions with standard package managers
 
+
 ## Building from Source (For Developers)
 
 If you want to modify the installer or contribute to development:
@@ -143,7 +177,7 @@ sudo pacman -S python python-pip tk python-pillow
 
 ### Clone and Run
 ```bash
-git clone https://github.com/LoadingScreenSolutions/linux-creative-suite.git
+git clone https://github.com/jcrashmiller/linux-creative-suite.git
 cd linux-creative-suite
 python3 src/main.py
 ```
@@ -167,17 +201,18 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## About Loading Screen Solutions
+## Future Direction
 
-Linux Creative Suite is developed by [Loading Screen Solutions](https://loadingscreensolutions.com), a technology consulting company focused on empowering users to leverage open-source alternatives to proprietary software.
+Linux Creative Suite serves as a reference implementation for a planned tool called **BundleForge**.
 
-**Mission**: Technology consulting & liberation through open-source solutions.
+BundleForge will allow anyone to define their own AppPacks using simple JSON configuration files, custom icons, and installation rules — enabling educators, teams, and organizations to create role-specific software bundles (writers, designers, students, support staff) without custom scripting.
+
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/LoadingScreenSolutions/linux-creative-suite/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/LoadingScreenSolutions/linux-creative-suite/discussions)
-- **Documentation**: [Wiki](https://github.com/LoadingScreenSolutions/linux-creative-suite/wiki)
+- **Issues**: [GitHub Issues](https://github.com/jcrashmiller/linux-creative-suite/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/jcrashmiller/linux-creative-suite/discussions)
+- **Documentation**: [Wiki](https://github.com/jcrashmiller/linux-creative-suite/wiki)
 
 ## Acknowledgments
 
